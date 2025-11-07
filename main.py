@@ -58,8 +58,9 @@ def home():
     plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
 
     # --- Kronig-Penney Plots ---
-    kp_plot_1d = kp.plot_kronig_penney_1d(a=a_default, V0=V0_default, b=b_default)
-    kp_plot_2d = kp.plot_kronig_penney_2d(a=a_default, V0=V0_default, b=b_default)
+    V0_J = V0_default * kp.eV  # convert eV to Joules
+    kp_plot_1d = kp.plot_kronig_penney_1d(a=a_default, V0=V0_J, b=b_default)
+    kp_plot_2d = kp.plot_kronig_penney_2d(a=a_default, V0=V0_J, b=b_default)
 
     return render_template("index.html",
                            Nc=Nc, Nv=Nv, Eg=Eg, Nd=Nd, T=T,
