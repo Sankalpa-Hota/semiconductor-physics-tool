@@ -17,6 +17,7 @@ def home():
     # --- Default parameters ---
     Nc, Nv, Eg, Nd, Ec, Ev, T = 1e19, 6e18, 0.66, 1e18, 0.0, -0.66, 300
     tau, vF, m_eff = 0.24e-15, 1e6, 0.26*9.11e-31
+    a_default, V0_default, b_default = 5e-10, 10, 2e-10  # Kronig-Penney defaults
 
     # --- Overwrite with user inputs ---
     if request.method == "POST":
@@ -28,6 +29,9 @@ def home():
         tau = float(request.form.get("tau", tau))
         vF = float(request.form.get("vF", vF))
         m_eff = float(request.form.get("m_eff", m_eff))
+        a_default = float(request.form.get("a", a_default))
+        V0_default = float(request.form.get("V0", V0_default))
+        b_default = float(request.form.get("b", b_default))
 
     # --- Physics Computations ---
     ni = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
@@ -54,12 +58,17 @@ def home():
                        xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)')
     plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
 
-    # --- Pass all to template ---
+    # --- Kronig-Penney Plots ---
+    kp_plot_1d = kp.plot_kronig_penney_1d(a=a_default, V0=V0_default, b=b_default)
+    kp_plot_2d = kp.plot_kronig_penney_2d(a=a_default, V0=V0_default, b=b_default)
+
     return render_template("index.html",
                            Nc=Nc, Nv=Nv, Eg=Eg, Nd=Nd, T=T,
                            ni=ni, Ef=Ef, n=n, p=p,
                            mu=mu, sigma=sigma, l=l,
-                           plot_div1=plot_div1, plot_div2=plot_div2)
+                           plot_div1=plot_div1, plot_div2=plot_div2,
+                           kp_plot_1d=kp_plot_1d, kp_plot_2d=kp_plot_2d,
+                           a=a_default, V0=V0_default, b=b_default)
 
 @app.route("/contact")
 def contact():
@@ -68,4 +77,3 @@ def contact():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
