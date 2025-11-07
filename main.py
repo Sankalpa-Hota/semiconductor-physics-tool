@@ -3,6 +3,7 @@ import fermi_boltzmann as fb
 import drude_model as dm
 import phonon_scattering as ps
 import kronig_penney as kp
+import reciprocal_lattice as rl
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import plot
@@ -15,7 +16,11 @@ def home():
     # --- Default parameters ---
     Nc, Nv, Eg, Nd, Ec, Ev, T = 1e19, 6e18, 0.66, 1e18, 0.0, -0.66, 300
     tau, vF, m_eff = 0.24e-15, 1e6, 0.26*9.11e-31
-    a_default, V0_default, b_default = 5e-10, 10, 2e-10  # Kronig-Penney defaults
+    a_default, V0_default, b_default = 5e-10, 10, 2e-10  # Kronig-Penney
+    # Reciprocal lattice default (cubic unit cell)
+    a1 = np.array([1,0,0])
+    a2 = np.array([0,1,0])
+    a3 = np.array([0,0,1])
 
     # --- Overwrite with user inputs ---
     if request.method == "POST":
@@ -44,28 +49,39 @@ def home():
     ni_values = np.array([fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti) for Ti in T_values])
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=T_values, y=ni_values, mode='lines+markers', name='ni(T)'))
-    fig1.update_layout(
-        title='Intrinsic Carrier Concentration vs Temperature',
-        xaxis_title='Temperature (K)', yaxis_title='ni (cm^-3)',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-    )
+    fig1.update_layout(title='Intrinsic Carrier Concentration vs Temperature',
+                       xaxis_title='Temperature (K)', yaxis_title='ni (cm^-3)',
+                       paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     plot_div1 = plot(fig1, output_type='div', include_plotlyjs=False)
 
     # --- Plot 2: Mobility vs Temperature ---
     mu_values = np.array([ps.mobility_phonon(Ti, m_eff, Nd) for Ti in T_values])
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=T_values, y=mu_values, mode='lines+markers', name='μ(T)'))
-    fig2.update_layout(
-        title='Mobility vs Temperature (Phonon & Impurity)',
-        xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-    )
+    fig2.update_layout(title='Mobility vs Temperature (Phonon & Impurity)',
+                       xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)',
+                       paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
 
     # --- Kronig-Penney Plots ---
-    V0_J = V0_default * kp.eV  # eV -> Joules
+    V0_J = V0_default * kp.eV
     kp_plot_1d = kp.plot_kronig_penney_1d(a=a_default, V0=V0_J, b=b_default)
     kp_plot_2d = kp.plot_kronig_penney_2d(a=a_default, V0=V0_J, b=b_default)
+
+    # --- Reciprocal lattice plot ---
+    b1, b2, b3 = rl.reciprocal_lattice(a1, a2, a3)
+    fig_rl = go.Figure()
+    for vec, color, name in zip([a1,a2,a3], ['red','green','blue'], ['a1','a2','a3']):
+        fig_rl.add_trace(go.Scatter3d(x=[0,vec[0]], y=[0,vec[1]], z=[0,vec[2]],
+                                      mode='lines+markers', line=dict(color=color,width=5),
+                                      marker=dict(size=4), name=name))
+    for vec, color, name in zip([b1,b2,b3], ['magenta','cyan','orange'], ['b1','b2','b3']):
+        fig_rl.add_trace(go.Scatter3d(x=[0,vec[0]], y=[0,vec[1]], z=[0,vec[2]],
+                                      mode='lines+markers', line=dict(color=color,width=5),
+                                      marker=dict(size=4), name=name))
+    fig_rl.update_layout(scene=dict(aspectmode='cube'), title="3D Real & Reciprocal Lattice",
+                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    plot_div_rl = plot(fig_rl, output_type='div', include_plotlyjs=False)
 
     return render_template("index.html",
                            Nc=Nc, Nv=Nv, Eg=Eg, Nd=Nd, T=T,
@@ -73,6 +89,7 @@ def home():
                            mu=mu, sigma=sigma, l=l,
                            plot_div1=plot_div1, plot_div2=plot_div2,
                            kp_plot_1d=kp_plot_1d, kp_plot_2d=kp_plot_2d,
+                           plot_div_rl=plot_div_rl,
                            a=a_default, V0=V0_default, b=b_default)
 
 @app.route("/contact")
