@@ -17,12 +17,14 @@ def ionized_impurity_mobility(T, Nd, A=1e21):
 
 def mobility_phonon(T, m_eff=1.0, Nd=1e18):
     """
-    Combined or default phonon-limited mobility function for Flask app
+    Combined phonon-limited mobility function for Flask app
     Returns mobility in cm^2/V.s
     """
-    # Example: just using acoustic phonon mobility for now
-    # You can later combine with impurity scattering if desired
-    return acoustic_phonon_mobility(T) * 1e4  # scale to cm^2/V.s
+    # Matthiessen's rule: 1/μ_total = 1/μ_acoustic + 1/μ_impurity
+    mu_ac = acoustic_phonon_mobility(T)
+    mu_imp = ionized_impurity_mobility(T, Nd)
+    mu_total = 1 / (1/mu_ac + 1/mu_imp)
+    return mu_total * 1e4  # Convert to cm^2/V.s
 
 if __name__ == "__main__":
     T = np.linspace(50, 600, 100)
@@ -30,9 +32,9 @@ if __name__ == "__main__":
     mu_impurity = ionized_impurity_mobility(T, Nd=1e18)
     mu_combined = mobility_phonon(T)
 
-    plt.plot(T, mu_acoustic, label='Acoustic Phonon Scattering')
-    plt.plot(T, mu_impurity, label='Ionized Impurity Scattering')
-    plt.plot(T, mu_combined, label='mobility_phonon (for Flask)')
+    plt.plot(T, mu_acoustic, label='Acoustic Phonon')
+    plt.plot(T, mu_impurity, label='Ionized Impurity')
+    plt.plot(T, mu_combined, label='Total Mobility (phonon_phonon)')
     plt.xlabel('Temperature (K)')
     plt.ylabel('Mobility (cm^2/V.s)')
     plt.title('Carrier Mobility vs Temperature')
