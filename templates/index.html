@@ -7,41 +7,51 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>⚡ Semiconductor Physics Interactive Tool ⚡</h1>
-        <form method="POST" class="input-form">
-            <label>Nc (cm^-3): <input type="number" step="1e16" name="Nc" value="{{Nc}}"></label>
-            <label>Nv (cm^-3): <input type="number" step="1e16" name="Nv" value="{{Nv}}"></label>
-            <label>Eg (eV): <input type="number" step="0.01" name="Eg" value="{{Eg}}"></label>
-            <label>Nd (cm^-3): <input type="number" step="1e16" name="Nd" value="{{Nd}}"></label>
-            <label>Temperature T (K): <input type="number" name="T" value="{{T}}"></label>
-            <label>Relaxation Time τ (s): <input type="number" step="1e-16" name="tau" value="0.24e-15"></label>
-            <label>Fermi Velocity vF (m/s): <input type="number" step="1e5" name="vF" value="1e6"></label>
-            <label>Effective Mass m* (kg): <input type="number" step="1e-32" name="m_eff" value="2.3686e-31"></label>
-            <button type="submit">Compute</button>
-        </form>
+<div class="container">
+    <h1>⚡ Semiconductor Physics Interactive Tool ⚡</h1>
+    <form method="POST" class="input-form">
+        <!-- Semiconductor parameters -->
+        <label>Nc (cm^-3): <input type="number" step="1e16" name="Nc" value="{{Nc}}"></label>
+        <label>Nv (cm^-3): <input type="number" step="1e16" name="Nv" value="{{Nv}}"></label>
+        <label>Eg (eV): <input type="number" step="0.01" name="Eg" value="{{Eg}}"></label>
+        <label>Nd (cm^-3): <input type="number" step="1e16" name="Nd" value="{{Nd}}"></label>
+        <label>Temperature T (K): <input type="number" name="T" value="{{T}}"></label>
+        <label>Relaxation Time τ (s): <input type="number" step="1e-16" name="tau" value="0.24e-15"></label>
+        <label>Fermi Velocity vF (m/s): <input type="number" step="1e5" name="vF" value="1e6"></label>
+        <label>Effective Mass m* (kg): <input type="number" step="1e-32" name="m_eff" value="2.3686e-31"></label>
 
-        <div class="results">
-            <h2>Results</h2>
-            <ul>
-                <li>Intrinsic carrier concentration ni = {{ni:.3e}} cm^-3</li>
-                <li>Fermi level Ef = {{Ef:.3f}} eV</li>
-                <li>Electron concentration n = {{n:.3e}} cm^-3</li>
-                <li>Hole concentration p = {{p:.3e}} cm^-3</li>
-                <li>Mobility μ = {{mu:.2f}} cm^2/V.s</li>
-                <li>Conductivity σ = {{sigma:.3e}} S/cm</li>
-                <li>Mean free path l = {{l:.2e}} m</li>
-            </ul>
-        </div>
+        <!-- Kronig-Penney parameters -->
+        <label>Lattice constant a (m): <input type="number" step="1e-10" name="a" value="{{a}}"></label>
+        <label>Barrier height V0 (eV): <input type="number" step="1" name="V0" value="{{V0}}"></label>
+        <label>Barrier width b (m): <input type="number" step="1e-10" name="b" value="{{b}}"></label>
 
-        <div class="plots">
-            <h2>Interactive Plots</h2>
-            {{ plot_div1 | safe }}
-            {{ plot_div2 | safe }}
-        </div>
+        <button type="submit">Compute</button>
+    </form>
 
-        <a href="/contact" class="contact-link">Contact Me</a>
+    <div class="results">
+        <h2>Results</h2>
+        <ul>
+            <li>Intrinsic carrier concentration ni = {{ni:.3e}} cm^-3</li>
+            <li>Fermi level Ef = {{Ef:.3f}} eV</li>
+            <li>Electron concentration n = {{n:.3e}} cm^-3</li>
+            <li>Hole concentration p = {{p:.3e}} cm^-3</li>
+            <li>Mobility μ = {{mu:.2f}} cm^2/V.s</li>
+            <li>Conductivity σ = {{sigma:.3e}} S/cm</li>
+            <li>Mean free path l = {{l:.2e}} m</li>
+        </ul>
     </div>
+
+    <div class="plots">
+        <h2>Interactive Plots</h2>
+        {{ plot_div1 | safe }}
+        {{ plot_div2 | safe }}
+        <h3>Kronig-Penney 1D Plot</h3>
+        {{ kp_plot_1d | safe }}
+        <h3>Kronig-Penney 2D Plot</h3>
+        {{ kp_plot_2d | safe }}
+    </div>
+
+    <a href="/contact" class="contact-link">Contact Me</a>
+</div>
 </body>
 </html>
-
