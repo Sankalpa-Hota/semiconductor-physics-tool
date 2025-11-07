@@ -1,0 +1,67 @@
+body {
+    font-family: 'Orbitron', sans-serif;
+    background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
+    color: #00ffea;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: 20px auto;
+    padding: 20px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    box-shadow: 0 0 20px #00ffea;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #00ffea;
+}
+
+.input-form label {
+    display: block;
+    margin: 10px 0;
+}
+
+input {
+    width: 150px;
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+button {
+    margin-top: 15px;
+    padding: 8px 20px;
+    background-color: #00ffea;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #000;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #00ccba;
+}
+
+.results, .plots {
+    margin-top: 20px;
+}
+
+.contact-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #ff00ff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.contact-link:hover {
+    color: #ff66ff;
+}
+

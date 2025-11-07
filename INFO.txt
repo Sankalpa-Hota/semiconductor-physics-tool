@@ -1,0 +1,16 @@
+Interactive Semiconductor Physics Simulator
+This project allows users to explore key semiconductor physics concepts interactively through a web interface. It supports calculations and visualizations for:
+
+- Fermi levels in intrinsic and doped semiconductors
+- Carrier concentration and Boltzmann transport
+- Drude conductivity and mean free path
+- Phonon scattering vs temperature
+- Kronig-Penney potential for band structure analysis
+- 3D lattice and reciprocal lattice visualization
+- Electron diffraction simulations in 3D lattices
+
+Ideal for students, educators, and researchers in semiconductor physics, condensed matter physics, and materials science.
+
+Contact: sankalpahota503@gmail.com
+LinkedIn: https://www.linkedin.com/in/sankalpa-hota-86937517a/
+
