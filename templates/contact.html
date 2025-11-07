@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <title>Contact Sankalpa Hota</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Contact Me</h1>
-    <p>Email: <a href="mailto:sankalpahota503@gmail.com">sankalpahota503@gmail.com</a></p>
-    <p>LinkedIn: <a href="https://www.linkedin.com/in/sankalpa-hota-86937517a/">https://www.linkedin.com/in/sankalpa-hota-86937517a/</a></p>
-    <a href="/">Back to Tool</a>
+<div class="container">
+    <h1>📧 Contact Me</h1>
+
+    <div class="contact-card">
+        <p><strong>Email:</strong> <a href="mailto:sankalpahota503@gmail.com">sankalpahota503@gmail.com</a></p>
+    </div>
+
+    <div class="contact-card">
+        <p><strong>LinkedIn:</strong> 
+        <a href="https://www.linkedin.com/in/sankalpa-hota-86937517a/" target="_blank">
+            https://www.linkedin.com/in/sankalpa-hota-86937517a/
+        </a></p>
+    </div>
+
+    <div class="contact-card">
+        <a href="/" class="back-link">⬅ Back to Tool</a>
+    </div>
+</div>
 </body>
 </html>
-
