@@ -1,4 +1,3 @@
-# main.py
 from flask import Flask, render_template, request
 import fermi_boltzmann as fb
 import drude_model as dm
@@ -45,20 +44,26 @@ def home():
     ni_values = np.array([fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti) for Ti in T_values])
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=T_values, y=ni_values, mode='lines+markers', name='ni(T)'))
-    fig1.update_layout(title='Intrinsic Carrier Concentration vs Temperature',
-                       xaxis_title='Temperature (K)', yaxis_title='ni (cm^-3)')
+    fig1.update_layout(
+        title='Intrinsic Carrier Concentration vs Temperature',
+        xaxis_title='Temperature (K)', yaxis_title='ni (cm^-3)',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+    )
     plot_div1 = plot(fig1, output_type='div', include_plotlyjs=False)
 
-    # --- Plot 2: Mobility vs Temperature (phonon scattering) ---
+    # --- Plot 2: Mobility vs Temperature ---
     mu_values = np.array([ps.mobility_phonon(Ti, m_eff, Nd) for Ti in T_values])
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=T_values, y=mu_values, mode='lines+markers', name='μ(T)'))
-    fig2.update_layout(title='Mobility vs Temperature (Phonon & Impurity)',
-                       xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)')
+    fig2.update_layout(
+        title='Mobility vs Temperature (Phonon & Impurity)',
+        xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+    )
     plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
 
     # --- Kronig-Penney Plots ---
-    V0_J = V0_default * kp.eV  # convert eV to Joules
+    V0_J = V0_default * kp.eV  # eV -> Joules
     kp_plot_1d = kp.plot_kronig_penney_1d(a=a_default, V0=V0_J, b=b_default)
     kp_plot_2d = kp.plot_kronig_penney_2d(a=a_default, V0=V0_J, b=b_default)
 
