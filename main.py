@@ -4,7 +4,6 @@ import fermi_boltzmann as fb
 import drude_model as dm
 import phonon_scattering as ps
 import kronig_penney as kp
-import reciprocal_lattice as rl
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import plot
@@ -37,11 +36,11 @@ def home():
     ni = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
     Ef = fb.fermi_level_n_type(Ec, Nd, ni, T)
     n, p = fb.carrier_concentration(Ef, Ec, Ev, Nc, Nv, T)
-    mu = dm.mobility_drude(tau, m_eff) * 1e4  # cm^2/Vs
+    mu = dm.mobility_drude(tau, m_eff) * 1e4  # cm^2/V.s
     sigma = dm.conductivity(n, mu)
     l = dm.mean_free_path(vF, tau)
 
-    # --- Example Plot 1: ni vs T ---
+    # --- Plot 1: ni vs T ---
     T_values = np.linspace(200, 800, 200)
     ni_values = np.array([fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti) for Ti in T_values])
     fig1 = go.Figure()
@@ -50,11 +49,11 @@ def home():
                        xaxis_title='Temperature (K)', yaxis_title='ni (cm^-3)')
     plot_div1 = plot(fig1, output_type='div', include_plotlyjs=False)
 
-    # --- Example Plot 2: Mobility vs Temperature (Phonon scattering) ---
-    mu_values = np.array([ps.mobility_phonon(Ti, m_eff) for Ti in T_values])
+    # --- Plot 2: Mobility vs Temperature (phonon scattering) ---
+    mu_values = np.array([ps.mobility_phonon(Ti, m_eff, Nd) for Ti in T_values])
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=T_values, y=mu_values, mode='lines+markers', name='μ(T)'))
-    fig2.update_layout(title='Mobility vs Temperature (Phonon Scattering)',
+    fig2.update_layout(title='Mobility vs Temperature (Phonon & Impurity)',
                        xaxis_title='Temperature (K)', yaxis_title='Mobility (cm^2/V.s)')
     plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
 
