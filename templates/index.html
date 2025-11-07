@@ -9,38 +9,75 @@
 <body>
 <div class="container">
     <h1>⚡ Semiconductor Physics Interactive Tool ⚡</h1>
-    <form method="POST" class="input-form">
-        <!-- Semiconductor parameters -->
-        <label>Nc (cm^-3): <input type="number" step="1e16" name="Nc" value="{{Nc}}"></label>
-        <label>Nv (cm^-3): <input type="number" step="1e16" name="Nv" value="{{Nv}}"></label>
-        <label>Eg (eV): <input type="number" step="0.01" name="Eg" value="{{Eg}}"></label>
-        <label>Nd (cm^-3): <input type="number" step="1e16" name="Nd" value="{{Nd}}"></label>
-        <label>Temperature T (K): <input type="number" name="T" value="{{T}}"></label>
-        <label>Relaxation Time τ (s): <input type="number" step="1e-16" name="tau" value="{{tau}}"></label>
-        <label>Fermi Velocity vF (m/s): <input type="number" step="1e5" name="vF" value="{{vF}}"></label>
-        <label>Effective Mass m* (kg): <input type="number" step="1e-32" name="m_eff" value="{{m_eff}}"></label>
 
-        <!-- Kronig-Penney parameters -->
-        <label>Lattice constant a (m): <input type="number" step="1e-10" name="a" value="{{a}}"></label>
-        <label>Barrier height V0 (eV): <input type="number" step="1" name="V0" value="{{V0}}"></label>
-        <label>Barrier width b (m): <input type="number" step="1e-10" name="b" value="{{b}}"></label>
+    <!-- Input Section -->
+    <div class="input-section">
+        <h2>Input Parameters</h2>
+        <form method="POST" class="input-form">
+            <label>Nc (cm^-3): <input type="number" step="1e16" name="Nc" value="{{Nc}}"></label>
+            <label>Nv (cm^-3): <input type="number" step="1e16" name="Nv" value="{{Nv}}"></label>
+            <label>Eg (eV): <input type="number" step="0.01" name="Eg" value="{{Eg}}"></label>
+            <label>Nd (cm^-3): <input type="number" step="1e16" name="Nd" value="{{Nd}}"></label>
+            <label>Temperature T (K): <input type="number" name="T" value="{{T}}"></label>
+            <label>Relaxation Time τ (s): <input type="number" step="1e-16" name="tau" value="{{tau}}"></label>
+            <label>Fermi Velocity vF (m/s): <input type="number" step="1e5" name="vF" value="{{vF}}"></label>
+            <label>Effective Mass m* (kg): <input type="number" step="1e-32" name="m_eff" value="{{m_eff}}"></label>
+            <label>Lattice constant a (m): <input type="number" step="1e-10" name="a" value="{{a}}"></label>
+            <label>Barrier height V0 (eV): <input type="number" step="1" name="V0" value="{{V0}}"></label>
+            <label>Barrier width b (m): <input type="number" step="1e-10" name="b" value="{{b}}"></label>
 
-        <button type="submit">Compute</button>
-    </form>
-
-    <div class="results">
-        <h2>Results</h2>
-        <ul>
-            <li>Intrinsic carrier concentration ni = {{ '{:.3e}'.format(ni) }} cm^-3</li>
-            <li>Fermi level Ef = {{ '{:.3f}'.format(Ef) }} eV</li>
-            <li>Electron concentration n = {{ '{:.3e}'.format(n) }} cm^-3</li>
-            <li>Hole concentration p = {{ '{:.3e}'.format(p) }} cm^-3</li>
-            <li>Mobility μ = {{ '{:.2f}'.format(mu) }} cm^2/V.s</li>
-            <li>Conductivity σ = {{ '{:.3e}'.format(sigma) }} S/cm</li>
-            <li>Mean free path l = {{ '{:.2e}'.format(l) }} m</li>
-        </ul>
+            <button type="submit">Compute / Update Graphs</button>
+        </form>
     </div>
 
+    <!-- Results Section -->
+    <div class="results">
+        <h2>Calculated Results</h2>
+
+        <div class="result-card">
+            <p><strong>Intrinsic carrier concentration (ni)</strong></p>
+            <p>Formula: <code>ni = √(Nc · Nv) · exp(-Eg / (2·kB·T))</code></p>
+            <p>Value: {{ '{:.3e}'.format(ni) }} cm^-3</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Fermi level Ef (n-type)</strong></p>
+            <p>Formula: <code>Ef = Ec + kB·T·ln(Nd / ni)</code></p>
+            <p>Value: {{ '{:.3f}'.format(Ef) }} eV</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Electron concentration n</strong></p>
+            <p>Formula: <code>n = Nc · exp(-(Ec - Ef) / (kB·T))</code></p>
+            <p>Value: {{ '{:.3e}'.format(n) }} cm^-3</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Hole concentration p</strong></p>
+            <p>Formula: <code>p = Nv · exp(-(Ef - Ev) / (kB·T))</code></p>
+            <p>Value: {{ '{:.3e}'.format(p) }} cm^-3</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Mobility μ</strong></p>
+            <p>Formula: <code>μ = q · τ / m*</code></p>
+            <p>Value: {{ '{:.2f}'.format(mu) }} cm^2/V.s</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Conductivity σ</strong></p>
+            <p>Formula: <code>σ = n · q · μ</code></p>
+            <p>Value: {{ '{:.3e}'.format(sigma) }} S/cm</p>
+        </div>
+
+        <div class="result-card">
+            <p><strong>Mean free path l</strong></p>
+            <p>Formula: <code>l = vF · τ</code></p>
+            <p>Value: {{ '{:.2e}'.format(l) }} m</p>
+        </div>
+    </div>
+
+    <!-- Plots Section -->
     <div class="plots">
         <h2>Interactive Plots</h2>
         {{ plot_div1 | safe }}
