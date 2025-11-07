@@ -1,61 +1,129 @@
+/* Body & general */
 body {
     font-family: 'Orbitron', sans-serif;
-    background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
+    /* Futuristic semiconductor background image */
+    background: url('https://images.unsplash.com/photo-1615590652970-0d66c2f1e56d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTMyMXwwfDF8c2VhcmNofDE2fHxjaXJjdWl0JTIwYm9hcmR8ZW58MHx8fHwxNjcwOTM3Mzg3&ixlib=rb-4.0.3&q=80&w=1080') no-repeat center center fixed;
+    background-size: cover;
     color: #00ffea;
     margin: 0;
     padding: 0;
 }
 
+/* Main container */
 .container {
     width: 80%;
     margin: 20px auto;
     padding: 20px;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     border-radius: 10px;
     box-shadow: 0 0 20px #00ffea;
 }
 
-h1, h2 {
+/* Headers */
+h1, h2, h3 {
     text-align: center;
     color: #00ffea;
+    margin-bottom: 15px;
+}
+
+/* Input Form */
+.input-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
 .input-form label {
-    display: block;
-    margin: 10px 0;
+    flex: 1 1 200px; /* each input takes up to 200px, wraps as needed */
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    color: #00ffea;
 }
 
-input {
-    width: 150px;
-    padding: 5px;
+.input-form input {
+    padding: 8px;
     border: none;
     border-radius: 5px;
-    margin-left: 10px;
+    margin-top: 5px;
 }
 
+/* Button */
 button {
-    margin-top: 15px;
-    padding: 8px 20px;
+    margin: 20px auto;
+    display: block;
+    padding: 10px 25px;
     background-color: #00ffea;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     color: #000;
     font-weight: bold;
+    font-size: 1rem;
 }
 
 button:hover {
     background-color: #00ccba;
 }
 
+/* Results & Plots */
 .results, .plots {
-    margin-top: 20px;
+    margin-top: 25px;
+    padding: 15px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 10px;
 }
 
+.results ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.results li {
+    padding: 5px 0;
+}
+
+/* Contact page & cards */
+.contact-card {
+    background: rgba(0,0,0,0.5);
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.contact-card a {
+    color: #00ffea;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.contact-card a:hover {
+    color: #00ccba;
+}
+
+.back-link {
+    display: inline-block;
+    padding: 10px 25px;
+    background-color: #00ffea;
+    border-radius: 5px;
+    color: #000;
+    font-weight: bold;
+    text-decoration: none;
+    margin-top: 10px;
+}
+
+.back-link:hover {
+    background-color: #00ccba;
+    color: #000;
+}
+
+/* Links */
 .contact-link {
     display: block;
     text-align: center;
-    margin-top: 20px;
+    margin-top: 25px;
     color: #ff00ff;
     text-decoration: none;
     font-weight: bold;
@@ -64,4 +132,10 @@ button:hover {
 .contact-link:hover {
     color: #ff66ff;
 }
+
+/* Make Plotly plots transparent to match dark theme */
+.plotly-graph-div {
+    background: rgba(0,0,0,0);
+}
+
 
