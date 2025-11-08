@@ -140,4 +140,10 @@ h2 {
     .container, .input-form, .results {
         width: 98%;
         padding: 10px;
-        margin
+        margin: 10px auto;
+    }
+    .input-row label, .input-row input {
+        min-width: 90px;
+        font-size: 0.9rem;
+    }
+}
