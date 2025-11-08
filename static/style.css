@@ -2,7 +2,7 @@
 body {
     font-family: 'Orbitron', sans-serif;
     /* Local background image */
-    background: url("/statics/images/bg.jpg") no-repeat center center fixed;
+    background: url("/static/images/bg.jpg") no-repeat center center fixed;
     background-size: cover;
     color: #00ffea;
     margin: 0;
