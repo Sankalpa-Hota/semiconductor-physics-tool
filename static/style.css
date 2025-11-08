@@ -2,7 +2,7 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', 'Orbitron', sans-serif;
-    background: url("/static/images/bg.jpg") no-repeat center center fixed;
+    background: url("images/bg.jpg") no-repeat center center fixed;
     background-size: cover;
     color: #fff;
     min-height: 100vh;
@@ -27,13 +27,12 @@ h1 {
     margin-bottom: 25px;
 }
 
-h2, h3 {
+h2 {
     color: #ffd700;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     font-size: 1.3rem;
     border-bottom: 1px solid rgba(255,255,255,0.3);
     padding-bottom: 5px;
-    margin-top: 20px;
 }
 
 .formula-hint {
@@ -49,7 +48,7 @@ h2, h3 {
     padding: 25px;
     border-radius: 15px;
     width: 75%;
-    margin: 40px auto;
+    margin: 30px auto;
     color: #fff;
     backdrop-filter: blur(5px);
 }
@@ -80,7 +79,7 @@ h2, h3 {
 }
 
 /* Button */
-.submit-btn, button {
+.submit-btn {
     background-color: #ffb703;
     color: #000;
     border: none;
@@ -94,7 +93,7 @@ h2, h3 {
     font-size: 1rem;
 }
 
-.submit-btn:hover, button:hover {
+.submit-btn:hover {
     background-color: #ffd166;
     transform: scale(1.05);
 }
@@ -136,20 +135,9 @@ h2, h3 {
     transform: scale(1.05);
 }
 
-/* For Plotly plots, if used */
-.plotly-graph-div {
-    background: rgba(0,0,0,0);
-}
-
-/* Utility */
+/* Responsive Design */
 @media (max-width: 700px) {
     .container, .input-form, .results {
         width: 98%;
         padding: 10px;
-        margin: 10px auto;
-    }
-    .input-row label, .input-row input {
-        min-width: 90px;
-        font-size: 0.9rem;
-    }
-}
+        margin
