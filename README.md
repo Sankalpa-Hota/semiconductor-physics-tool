@@ -10,7 +10,7 @@
 
 This open-source project is designed for **students, researchers, and engineers** in **Electrical Engineering, Material Science, Nanotechnology, and Semiconductor Physics** who want to **compute, visualize, and understand core semiconductor properties interactively**.
 
-🔬 Live demo: *(link will appear after Render deployment)*  
+🔬 Live demo: https://semiconductor-physics-tool.onrender.com
 📘 GitHub Repository: https://github.com/yourusername/semiconductor-physics-tool  
 
 ---
