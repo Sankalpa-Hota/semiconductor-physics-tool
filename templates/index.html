@@ -4,65 +4,112 @@
     <meta charset="UTF-8">
     <title>Physics Models Tool</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Physics Modeling Tool</h1>
 
-        <!-- === K-Penny Model === -->
-        <div class="input-form">
-            <h2>K-Penny Model</h2>
-            <p class="formula-hint">Formula: E = (h²k²) / (2m) + V₀ sin²(πx/a)</p>
+        <form method="POST">
 
-            <div class="input-row">
-                <label for="a">Lattice Constant (a):</label>
-                <input type="number" id="a" placeholder="Enter a (nm)">
+            <!-- === Kronig-Penney === -->
+            <div class="input-form">
+                <h2>Kronig–Penney Model</h2>
+                <p class="formula-hint">E = (ħ²k²)/(2m) + V₀ sin²(πx/a)</p>
+
+                <div class="input-row">
+                    <label for="a">Lattice Constant (a, m):</label>
+                    <input type="number" name="a" id="a" step="1e-12" value="{{ a }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="V0">Potential (V₀, eV):</label>
+                    <input type="number" name="V0" id="V0" value="{{ V0 }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="b">Barrier Width (b, m):</label>
+                    <input type="number" name="b" id="b" step="1e-12" value="{{ b }}">
+                </div>
             </div>
 
-            <div class="input-row">
-                <label for="v0">Potential (V₀):</label>
-                <input type="number" id="v0" placeholder="Enter V₀ (eV)">
+            <!-- === Boltzmann Transport === -->
+            <div class="input-form">
+                <h2>Boltzmann Transport Model</h2>
+                <p class="formula-hint">σ = n·q·μ , l = v<sub>F</sub>·τ</p>
+
+                <div class="input-row">
+                    <label for="Nc">Nc (cm⁻³):</label>
+                    <input type="number" name="Nc" id="Nc" value="{{ Nc }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="Nv">Nv (cm⁻³):</label>
+                    <input type="number" name="Nv" id="Nv" value="{{ Nv }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="Eg">Bandgap (Eg, eV):</label>
+                    <input type="number" name="Eg" id="Eg" value="{{ Eg }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="Nd">Doping (Nd, cm⁻³):</label>
+                    <input type="number" name="Nd" id="Nd" value="{{ Nd }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="T">Temperature (K):</label>
+                    <input type="number" name="T" id="T" value="{{ T }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="tau">Relaxation Time (τ, s):</label>
+                    <input type="number" name="tau" id="tau" value="{{ tau }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="vF">Fermi Velocity (vF, m/s):</label>
+                    <input type="number" name="vF" id="vF" value="{{ vF }}">
+                </div>
+
+                <div class="input-row">
+                    <label for="m_eff">Effective Mass (m*):</label>
+                    <input type="number" name="m_eff" id="m_eff" value="{{ m_eff }}">
+                </div>
             </div>
-        </div>
 
-        <!-- === Boltzmann Transport === -->
-        <div class="input-form">
-            <h2>Boltzmann Transport</h2>
-            <p class="formula-hint">Formula: j = n·q·μ·E</p>
-
-            <div class="input-row">
-                <label for="n">Carrier Density (n):</label>
-                <input type="number" id="n" placeholder="Enter n (m⁻³)">
-            </div>
-
-            <div class="input-row">
-                <label for="mu">Mobility (μ):</label>
-                <input type="number" id="mu" placeholder="Enter μ (m²/V·s)">
-            </div>
-        </div>
-
-        <!-- === Common Parameters === -->
-        <div class="input-form">
-            <h2>Common Parameters</h2>
-            <p class="formula-hint">These values are used in both models.</p>
-
-            <div class="input-row">
-                <label for="m">Mass (m):</label>
-                <input type="number" id="m" placeholder="Enter mass (kg)">
-            </div>
-
-            <div class="input-row">
-                <label for="h">Planck Constant (h):</label>
-                <input type="number" id="h" placeholder="Enter h (J·s)">
-            </div>
-        </div>
-
-        <button class="submit-btn">Compute</button>
+            <button type="submit" class="submit-btn">Compute</button>
+        </form>
 
         <!-- === Results Section === -->
         <div class="results">
             <h2>Results</h2>
-            <div class="result-card">Output will appear here...</div>
+
+            <div class="result-card">Intrinsic Carrier (nᵢ): {{ "{:.3e}".format(ni) }}</div>
+            <div class="result-card">Fermi Level (E<sub>f</sub>): {{ "{:.3f}".format(Ef) }} eV</div>
+            <div class="result-card">Electron Density (n): {{ "{:.3e}".format(n) }}</div>
+            <div class="result-card">Hole Density (p): {{ "{:.3e}".format(p) }}</div>
+            <div class="result-card">Mobility (μ): {{ "{:.3e}".format(mu) }} cm²/V·s</div>
+            <div class="result-card">Conductivity (σ): {{ "{:.3e}".format(sigma) }} S/m</div>
+            <div class="result-card">Mean Free Path (l): {{ "{:.3e}".format(l) }} m</div>
+
+            <div class="plot-section">
+                <h3>Intrinsic Carrier Concentration vs Temperature</h3>
+                {{ plot_div1|safe }}
+
+                <h3>Mobility vs Temperature</h3>
+                {{ plot_div2|safe }}
+
+                <h3>Kronig–Penney Band Structure (1D)</h3>
+                {{ kp_plot_1d|safe }}
+
+                <h3>Kronig–Penney (2D)</h3>
+                {{ kp_plot_2d|safe }}
+
+                <h3>Reciprocal Lattice (3D)</h3>
+                {{ plot_div_rl|safe }}
+            </div>
         </div>
 
         <a href="/contact" class="contact-link">Contact Me</a>
