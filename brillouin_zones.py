@@ -62,6 +62,50 @@ def generate_reciprocal_points(b1, b2, N=6):
     return np.array(pts)
 
 
+def _bragg_list(b1, b2, n_zones, max_vecs=96):
+    """Reciprocal vectors G (excluding 0), sorted by |G| for stable plane ordering."""
+    pts   = generate_reciprocal_points(b1, b2, N=max(n_zones + 4, 8))
+    dists = np.linalg.norm(pts, axis=1)
+    bragg = pts[dists > 1e-9]
+    order = np.argsort(np.sum(bragg * bragg, axis=1))
+    bragg = bragg[order]
+    return [(float(G[0]), float(G[1]), float(np.dot(G, G))) for G in bragg[:max_vecs]]
+
+
+def _zone_index_ray(kx, ky, bragg_pre):
+    """
+    Extended Brillouin zone index: 1 + number of distinct Bragg planes
+    k·G = |G|²/2 intersected along the open segment (0, k) from Γ.
+
+    This matches the usual textbook construction (count crossings of perpendicular
+    bisectors to reciprocal lattice vectors as one moves outward from Γ).
+    """
+    kn = float(np.hypot(kx, ky))
+    if kn < 1e-14:
+        return 1
+    khx, khy = kx / kn, ky / kn
+    ts = []
+    for Gx, Gy, G2 in bragg_pre:
+        kg = khx * Gx + khy * Gy
+        if kg <= 1e-14:
+            continue
+        s = 0.5 * G2 / kg
+        if s <= 1e-14 or s >= kn * (1.0 - 1e-9):
+            continue
+        ts.append(s)
+    if not ts:
+        return 1
+    ts.sort()
+    nuniq = 1
+    prev = ts[0]
+    tol = max(1e-12, 1e-7 * kn)
+    for s in ts[1:]:
+        if abs(s - prev) > tol:
+            nuniq += 1
+            prev = s
+    return 1 + nuniq
+
+
 def compute_zone_map(b1, b2, n_zones, grid_n=None):
     if grid_n is None:
         grid_n = 240 if os.environ.get('RENDER', '').lower() == 'true' else 350
@@ -69,29 +113,32 @@ def compute_zone_map(b1, b2, n_zones, grid_n=None):
     kx_arr = np.linspace(-b_max, b_max, grid_n)
     ky_arr = np.linspace(-b_max, b_max, grid_n)
     KX, KY = np.meshgrid(kx_arr, ky_arr)
-    k_flat = np.stack([KX.ravel(), KY.ravel()], axis=1)
+    bragg_pre = _bragg_list(b1, b2, n_zones)
 
-    pts    = generate_reciprocal_points(b1, b2, N=max(n_zones + 3, 7))
-    dists  = np.linalg.norm(pts, axis=1)
-    bragg  = pts[dists > 1e-9]
-
-    zone_map = np.ones(len(k_flat), dtype=int)
-    for G in bragg[:min(len(bragg), 80)]:
-        G2_half = np.dot(G, G) / 2.0
-        crossed = (k_flat @ G) > G2_half + 1e-10
-        zone_map += crossed.astype(int)
+    zone_map = np.empty(KX.size, dtype=np.int32)
+    i = 0
+    for kx, ky in zip(KX.ravel(), KY.ravel()):
+        zone_map[i] = _zone_index_ray(kx, ky, bragg_pre)
+        i += 1
 
     zone_map = zone_map.reshape(grid_n, grid_n)
     return kx_arr, ky_arr, zone_map
 
 
-def build_zone_polygons(kx_arr, ky_arr, zone_map, n_zones):
+def build_zone_polygons(kx_arr, ky_arr, zone_map, n_zones, zones_to_show=None):
+    if zones_to_show is None:
+        zones_to_show = set(range(1, n_zones + 1))
+    else:
+        zones_to_show = set(zones_to_show)
     if not SHAPELY_OK:
         return [None] * n_zones
 
     dk        = kx_arr[1] - kx_arr[0]
     zone_polys = []
     for z in range(1, n_zones + 1):
+        if z not in zones_to_show:
+            zone_polys.append(None)
+            continue
         mask      = (zone_map == z)
         iy_idx, ix_idx = np.where(mask)
         if len(ix_idx) == 0:
@@ -112,12 +159,13 @@ def build_zone_polygons(kx_arr, ky_arr, zone_map, n_zones):
     return zone_polys
 
 
-def poly_to_traces(poly, zone_idx, alpha=0.22):
+def poly_to_traces(poly, zone_num, alpha=0.22):
     if poly is None or (hasattr(poly, 'is_empty') and poly.is_empty):
         return []
 
-    color     = ZONE_COLORS[zone_idx % len(ZONE_COLORS)]
-    fill_rgba = ZONE_FILL_RGBA[zone_idx % len(ZONE_FILL_RGBA)].format(a=alpha)
+    zix       = max(zone_num - 1, 0)
+    color     = ZONE_COLORS[zix % len(ZONE_COLORS)]
+    fill_rgba = ZONE_FILL_RGBA[zix % len(ZONE_FILL_RGBA)].format(a=alpha)
     traces    = []
 
     def add_ring(coords):
@@ -128,7 +176,7 @@ def poly_to_traces(poly, zone_idx, alpha=0.22):
             x=xs, y=ys, mode='lines',
             fill='toself', fillcolor=fill_rgba,
             line=dict(color=color, width=1.5),
-            name=f'Zone {zone_idx + 1}',
+            name=f'Zone {zone_num}',
             showlegend=False,
             hoverinfo='skip'
         ))
@@ -142,16 +190,30 @@ def poly_to_traces(poly, zone_idx, alpha=0.22):
 
 
 def plot_brillouin_zones(lattice='square', a=1.0, b=1.0,
-                         angle=120, n_zones=4, show_grid=True):
+                         angle=120, n_zones=4, show_grid=True,
+                         zones_to_show=None):
+    """
+    zones_to_show: iterable of zone indices (1..n_zones) to draw; if None, draw 1..n_zones.
+    When multiple zones are selected, fills are drawn on top (semi-transparent overlap).
+    """
     n_zones = max(1, min(int(n_zones), 10))
     _, _, b1, b2 = get_lattice_vectors(lattice, a, b, angle)
 
-    kx_arr, ky_arr, zone_map = compute_zone_map(b1, b2, n_zones)
-    zone_polys               = build_zone_polygons(kx_arr, ky_arr, zone_map, n_zones)
+    if zones_to_show is None:
+        z_show = tuple(range(1, n_zones + 1))
+    else:
+        z_show = tuple(sorted({int(z) for z in zones_to_show if 1 <= int(z) <= n_zones}))
+        if not z_show:
+            z_show = tuple(range(1, n_zones + 1))
 
+    kx_arr, ky_arr, zone_map = compute_zone_map(b1, b2, n_zones)
+    zone_polys = build_zone_polygons(
+        kx_arr, ky_arr, zone_map, n_zones, zones_to_show=set(z_show))
+
+    z_label = ','.join(str(z) for z in z_show) if len(z_show) <= 5 else '…'
     layout_kw                  = dict(**DARK_LAYOUT)
     layout_kw['title']         = dict(
-        text=f'Brillouin Zones 1-{n_zones} ({lattice.capitalize()} Lattice)',
+        text=f'Brillouin zones {z_label} ({lattice.capitalize()}, max {n_zones})',
         font=dict(size=10, color='#2e4460'), x=0.01)
     layout_kw['xaxis']         = dict(
         title='kx (rad/A)', gridcolor='#1a2840',
@@ -167,7 +229,7 @@ def plot_brillouin_zones(lattice='square', a=1.0, b=1.0,
 
     if not SHAPELY_OK:
         # Fallback: scatter plot of zone-coloured pixels
-        for z in range(1, n_zones + 1):
+        for z in z_show:
             mask        = (zone_map == z)
             iy_idx, ix_idx = np.where(mask)
             if len(ix_idx) == 0:
@@ -181,13 +243,17 @@ def plot_brillouin_zones(lattice='square', a=1.0, b=1.0,
                 name=f'Zone {z}', showlegend=True))
     else:
         for z_idx, poly in enumerate(zone_polys):
-            for tr in poly_to_traces(poly, z_idx):
+            znum = z_idx + 1
+            if znum not in z_show:
+                continue
+            alpha = max(0.09, 0.26 - 0.018 * (len(z_show) - 1))
+            for tr in poly_to_traces(poly, znum, alpha=alpha):
                 fig.add_trace(tr)
             col = ZONE_COLORS[z_idx % len(ZONE_COLORS)]
             fig.add_trace(go.Scatter(
                 x=[None], y=[None], mode='markers',
                 marker=dict(size=10, color=col, symbol='square'),
-                name=f'Zone {z_idx + 1}', showlegend=True))
+                name=f'Zone {znum}', showlegend=True))
 
     if show_grid:
         pts = generate_reciprocal_points(b1, b2, N=4)

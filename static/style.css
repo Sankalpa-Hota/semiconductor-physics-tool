@@ -38,6 +38,98 @@ body {
 }
 
 /* ── HEADER ─────────────────────────────────────────── */
+.oq-sidebar-hidden {
+  display: none !important;
+}
+
+.oq-guided-hero {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-2);
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-2);
+}
+
+.oq-section-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.oq-section-link {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--cyan);
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-1);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.oq-section-link:hover {
+  border-color: var(--cyan);
+  background: #00f0ff0d;
+}
+
+.oq-theory-main {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--text-1);
+  line-height: 1.75;
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.35rem;
+  border-left: 3px solid var(--purple);
+  background: var(--bg-2);
+  border-radius: 0 var(--r) var(--r) 0;
+}
+
+.oq-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--r);
+  background: rgba(0, 240, 255, 0.03);
+}
+
+.oq-pick-grid label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.oq-main-landing {
+  max-width: 640px;
+  margin: 2rem auto 3rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.oq-main-landing h2 {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-1);
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
 .site-header {
   position: sticky; top: 0; z-index: 200;
   background: rgba(5,8,16,0.94);

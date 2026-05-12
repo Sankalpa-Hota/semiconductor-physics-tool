@@ -36,7 +36,27 @@
     return card ? card.getAttribute('data-plot-key') : null;
   }
 
+  function readRecipPayload() {
+    var nEl = document.getElementById('recip-n');
+    var n = nEl ? parseInt(nEl.value, 10) || 4 : 4;
+    n = Math.max(3, Math.min(8, n));
+    var verts = [];
+    for (var i = 0; i < n; i++) {
+      var xf = document.querySelector('[name="recip_' + i + '_x"]');
+      var yf = document.querySelector('[name="recip_' + i + '_y"]');
+      var zf = document.querySelector('[name="recip_' + i + '_z"]');
+      if (!xf || !yf || !zf) continue;
+      verts.push([
+        parseFloat(xf.value) || 0,
+        parseFloat(yf.value) || 0,
+        parseFloat(zf.value) || 0
+      ]);
+    }
+    return verts;
+  }
+
   function readFormPayload() {
+    if (typeof syncBzLayersHidden === 'function') syncBzLayersHidden();
     var form = document.getElementById('sim-form');
     var o = {};
     if (!form) return o;
@@ -51,7 +71,18 @@
       o.bz_b = String(bzState.b);
       o.bz_angle = String(bzState.angle);
       o.bz_zones = String(bzState.zones);
+      o.bz_layers = (typeof getBzLayersPayload === 'function')
+        ? getBzLayersPayload()
+        : (document.getElementById('hid-bz-layers') || {}).value || 'all';
     }
+    var rv = readRecipPayload();
+    if (rv.length >= 3) o.recip_vertices = rv;
+    var rca = document.querySelector('[name="recip_c_axis"]');
+    if (rca && rca.value !== '') o.recip_c_axis = rca.value;
+    var rn = document.getElementById('recip-n');
+    if (rn && rn.value) o.recip_n = rn.value;
+    var as = document.getElementById('active-section-field');
+    if (as && as.value) o.active_section = as.value;
     return o;
   }
 

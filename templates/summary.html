@@ -29,6 +29,16 @@
     What We Built & Why
   </h2>
 
+  <div style="background:var(--bg-2);border:1px solid var(--border);
+       border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:2rem;">
+    <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--cyan);
+         letter-spacing:0.14em;text-transform:uppercase;margin-bottom:0.5rem;">Creator</div>
+    <p style="color:var(--text-1);font-size:0.92rem;line-height:1.8;margin:0;">
+      <strong>Sankalpa Hota</strong> — entrepreneur and enthusiast in quantum materials, semiconductor education, and creative engineering.
+      <a href="https://sankalpa-hota.github.io/Sankalpa-Hota/" style="color:var(--cyan);" rel="noopener">Personal site →</a>
+    </p>
+  </div>
+
   <!-- Summary paragraph -->
   <div style="background:var(--bg-2);border:1px solid var(--border);
        border-left:3px solid var(--cyan);border-radius:var(--r);
@@ -90,7 +100,7 @@
     ('Transport Physics', 'Drude conductivity, Matthiessen mobility, carrier concentrations, Hall effect, resistivity vs doping'),
     ('Junction & Device Physics', 'p-n I-V, Schottky barrier bands, depletion width, MOSFET I-V regions'),
     ('Lattice Dynamics', 'Phonon dispersion (acoustic + optical), 3D real & reciprocal lattice vectors'),
-    ('PhysBot AI Assistant', 'Floating chatbot with live Wikipedia + ArXiv retrieval, TF-IDF ranking, llama3 generation'),
+    ('PhysBot AI Assistant', 'Built-in semiconductor notes; optional local LLM with Wikipedia + ArXiv retrieval (TF-IDF ranked)'),
     ('Range Sliders + Text Input', 'Every parameter has a physics-appropriate range slider and direct numeric input'),
     ('Dark Mode Circuit UI', 'Space Mono monospaced aesthetic, neon-on-obsidian color scheme, fully responsive'),
   ] %}
@@ -114,7 +124,7 @@
          letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.75rem;">Tech Stack</div>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
       {% for tech in ['Flask', 'NumPy', 'SciPy', 'Plotly', 'Shapely', 'Canvas API',
-                      'Wikipedia API', 'ArXiv API', 'Ollama / llama3',
+                      'Wikipedia API', 'ArXiv API', 'Optional local LLM',
                       'TF-IDF RAG', 'Space Mono', 'DM Sans'] %}
       <span style="font-family:var(--font-mono);font-size:0.65rem;
            padding:3px 10px;border-radius:12px;

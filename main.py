@@ -6,12 +6,16 @@ import plotly.graph_objs as go
 from plotly.offline import plot
 from plotly.subplots import make_subplots
 import os
+import json
+import urllib.request
+import urllib.parse
 
 import fermi_boltzmann as fb
 import drude_model as dm
 import phonon_scattering as ps
 import kronig_penney as kp
 import reciprocal_lattice as rl
+import oq_sections as oqs
 
 app = Flask(__name__)
 app.register_blueprint(chatbot_bp)
@@ -85,40 +89,153 @@ PLOT_KEYS = frozenset({
 
 PLOT_PLACEHOLDER = (
     "<div class=\"plot-placeholder\">"
-    "<p><strong>Plot closed.</strong> Click <strong>Render this</strong> above "
-    "to generate this figure from the current parameters.</p>"
-    "<p class=\"plot-ph-hint\">Keeping plots closed saves memory on small hosting plans.</p>"
+    "<p><strong>Plot not loaded.</strong> Tick it above and click "
+    "<strong>Apply parameters &amp; load selected plots</strong>, or press "
+    "<strong>Render this</strong> on the card.</p>"
+    "<p class=\"plot-ph-hint\">Guided mode only builds figures you ask for.</p>"
     "</div>"
 )
 
-# Initial page load: only these figures are generated (saves RAM on small hosts).
-# Order matches the first six plot cards in templates/index.html.
-DEFAULT_OPEN_PLOTS = frozenset({
-    'fd', 'dos', 'dos_qw', 'ni_T', 'mu_T', 'carr_T',
-})
-
-
 def parse_open_plots(form):
-    """Comma-separated keys from the hidden field; POST may send '' if all closed."""
+    """Comma-separated keys from the hidden field; empty / missing → no plots (guided mode)."""
     raw = form.get('open_plots')
     if raw is None:
-        return frozenset(DEFAULT_OPEN_PLOTS)
+        return frozenset()
     raw = raw.strip()
     if not raw:
         return frozenset()
     return frozenset(k.strip() for k in raw.split(',') if k.strip() in PLOT_KEYS)
 
 
+def fetch_wikipedia_extract(title, timeout=2.5, max_len=480):
+    """Short extract from Wikipedia REST API (best-effort; offline-safe)."""
+    if not title:
+        return ''
+    t = title.replace(' ', '_')
+    url = f'https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(t, safe="")}'
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={'User-Agent': 'OPEN-Quantum/1.0 (education; +https://github.com/)'},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode('utf-8'))
+        ext = (data.get('extract') or '').strip()
+        if not ext:
+            return ''
+        return (ext[:max_len] + '…') if len(ext) > max_len else ext
+    except Exception:
+        return ''
+
+
+PLOT_TITLES = {
+    'fd': 'Fermi–Dirac vs energy',
+    'dos': '3D DOS and occupation',
+    'dos_qw': 'Quantum-well 2D DOS (stairs)',
+    'ni_T': 'Intrinsic nᵢ vs T',
+    'mu_T': 'Mobility vs T',
+    'carr_T': 'n, p vs T',
+    'cond_T': 'Conductivity vs T',
+    'sdh': 'Shubnikov–de Haas (model)',
+    'ef_dop': 'Fermi level vs doping',
+    'band': 'Flat-band diagram',
+    'rho_dop': 'Resistivity vs doping',
+    'eg_T': 'Bandgap vs T (Varshni)',
+    'tauc': 'Tauc plot',
+    'iv': 'p–n junction I–V',
+    'schot': 'Schottky bands',
+    'hall': 'Hall voltage vs B',
+    'depl': 'Depletion width',
+    'pn_x': 'p–n bands (x)',
+    'ek_comp': 'Direct vs indirect E(k)',
+    'kp1d': 'Kronig–Penney E(k)',
+    'kp2d': 'KP vs barrier height',
+    'kp3d': 'KP 3D surface',
+    'bz_plot': 'Brillouin zones (2D)',
+    'phonon': 'Phonon dispersion',
+    'recip': 'Real vs reciprocal lattice (3D)',
+}
+
+
+def parse_recip_form(form):
+    """Vertices R0… in Cartesian coords; first vertex is the cell corner."""
+    n = gi(form, 'recip_n', 4, lo=3, hi=8)
+    dv = rl.DEFAULT_VERTICES
+    rows = []
+    for i in range(n):
+        if i < len(dv):
+            dx, dy, dz = float(dv[i, 0]), float(dv[i, 1]), float(dv[i, 2])
+        else:
+            dx, dy, dz = 0.0, float(i) * 0.2, 0.0
+        rows.append([
+            gf(form, f'recip_{i}_x', dx),
+            gf(form, f'recip_{i}_y', dy),
+            gf(form, f'recip_{i}_z', dz),
+        ])
+    c_axis = gf(form, 'recip_c_axis', 0.6)
+    return np.array(rows, dtype=float), n, c_axis
+
+
+# Hole DOS effective mass (m0); Si ~0.49-0.56 depending on model; keeps VB DOS
+# separate from conduction mass tied to the m* slider.
+M_P_DOS_RATIO = 0.56
+
+
+def parse_bz_layers_raw(raw, n_zones):
+    """Comma-separated zone indices 1..10; 'all' or empty → 1..n_zones."""
+    raw = (raw or '').strip()
+    n_zones = max(1, min(10, int(n_zones)))
+    if not raw or raw.lower() == 'all':
+        return tuple(range(1, n_zones + 1))
+    out = []
+    for p in raw.split(','):
+        p = p.strip()
+        if not p:
+            continue
+        try:
+            z = int(round(float(p)))
+            if 1 <= z <= n_zones:
+                out.append(z)
+        except (TypeError, ValueError):
+            pass
+    return tuple(sorted(set(out))) or tuple(range(1, n_zones + 1))
+
+
+def parse_bz_layers_json(val, n_zones):
+    """Accept list, 'all', or comma string from JSON API."""
+    n_zones = max(1, min(10, int(n_zones)))
+    if val is None or val == 'all':
+        return tuple(range(1, n_zones + 1))
+    if isinstance(val, list):
+        out = []
+        for x in val:
+            try:
+                z = int(round(float(x)))
+                if 1 <= z <= n_zones:
+                    out.append(z)
+            except (TypeError, ValueError):
+                pass
+        return tuple(sorted(set(out))) or tuple(range(1, n_zones + 1))
+    if isinstance(val, str):
+        return parse_bz_layers_raw(val, n_zones)
+    return tuple(range(1, n_zones + 1))
+
+
 def simulation_context(
     Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0_m, b_m,
-    bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+    bz_lattice, bz_a, bz_b, bz_angle, bz_zones, bz_layers=None,
+    recip_vertices=None, recip_c_axis=0.6,
 ):
     Ec = 0.0
     Ev = -Eg
     V0_J = V0_m * eV
     m_eff = m_eff_ratio * m0
+    if bz_layers is None:
+        bz_layers = tuple(range(1, max(1, min(10, int(bz_zones))) + 1))
+    if recip_vertices is None:
+        recip_vertices = rl.DEFAULT_VERTICES.copy()
     ni = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
-    Ef = fb.fermi_level_n_type(Ec, Nd, ni, T)
+    Ef = fb.fermi_level_n_type(Ec, Ev, Nc, Nv, Nd, ni, T)
     n, p = fb.carrier_concentration(Ef, Ec, Ev, Nc, Nv, T)
     mu = dm.mobility_drude(tau, m_eff) * 1e4
     sigma = dm.conductivity(n, mu)
@@ -128,9 +245,12 @@ def simulation_context(
         'tau': tau, 'vF': vF, 'm_eff_ratio': m_eff_ratio,
         'a': a, 'V0': V0_m, 'b': b_m, 'V0_J': V0_J,
         'bz_lattice': bz_lattice, 'bz_a': bz_a, 'bz_b': bz_b,
-        'bz_angle': bz_angle, 'bz_zones': bz_zones,
+        'bz_angle': bz_angle, 'bz_zones': bz_zones, 'bz_layers': bz_layers,
+        'm_p_dos_ratio': M_P_DOS_RATIO,
         'Ec': Ec, 'Ev': Ev, 'ni': ni, 'Ef': Ef, 'n': n, 'p': p,
         'mu': mu, 'sigma': sigma, 'l_mfp': l_mfp,
+        'recip_vertices': np.asarray(recip_vertices, dtype=float),
+        'recip_c_axis': float(recip_c_axis),
     }
 
 
@@ -138,10 +258,12 @@ def render_plot_html(plot_key, ctx):
     """Return Plotly div (or error HTML) for a single key."""
     k = plot_key
     if k == 'fd':
-        return plt_fermi_dirac(ctx['Ef'], ctx['T'])
+        return plt_fermi_dirac(
+            ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['Nd'], ctx['T'])
     if k == 'dos':
         return plt_dos(
-            ctx['m_eff_ratio'], ctx['Ec'], ctx['Ev'], ctx['T'], ctx['Ef'])
+            ctx['m_eff_ratio'], ctx['m_p_dos_ratio'],
+            ctx['Ec'], ctx['Ev'], ctx['T'], ctx['Ef'])
     if k == 'ni_T':
         return plt_ni_vs_T(ctx['Nc'], ctx['Nv'], ctx['Eg'])
     if k == 'mu_T':
@@ -166,11 +288,12 @@ def render_plot_html(plot_key, ctx):
     if k == 'kp3d':
         return plt_kp_3d(ctx['a'], ctx['V0_J'], ctx['b'])
     if k == 'recip':
-        return plt_reciprocal_lattice()
+        return plt_reciprocal_lattice(
+            ctx['recip_vertices'], ctx['recip_c_axis'])
     if k == 'hall':
         return plt_hall(ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['Nd'])
     if k == 'iv':
-        return plt_iv_diode(ctx['T'], ctx['Eg'])
+        return plt_iv_diode(ctx['T'], ctx['Eg'], ctx['Nc'], ctx['Nv'])
     if k == 'schot':
         return plt_schottky(ctx['Eg'])
     if k == 'phonon':
@@ -190,7 +313,8 @@ def render_plot_html(plot_key, ctx):
     if k == 'bz_plot':
         return plot_brillouin_zones(
             lattice=ctx['bz_lattice'], a=ctx['bz_a'], b=ctx['bz_b'],
-            angle=ctx['bz_angle'], n_zones=ctx['bz_zones'])
+            angle=ctx['bz_angle'], n_zones=ctx['bz_zones'],
+            zones_to_show=ctx['bz_layers'])
     return PLOT_PLACEHOLDER
 
 
@@ -200,11 +324,29 @@ def _float_param(data, key, default):
     return float(data[key])
 
 
+def parse_recip_api(data):
+    cax = 0.6
+    try:
+        if data.get('recip_c_axis') not in (None, ''):
+            cax = float(data['recip_c_axis'])
+    except (TypeError, ValueError):
+        cax = 0.6
+    rv = data.get('recip_vertices')
+    if isinstance(rv, list) and len(rv) >= 3:
+        rows = []
+        for row in rv[:8]:
+            if isinstance(row, (list, tuple)) and len(row) >= 3:
+                rows.append([float(row[0]), float(row[1]), float(row[2])])
+        if len(rows) >= 3:
+            return np.array(rows, dtype=float), cax
+    return rl.DEFAULT_VERTICES.copy(), cax
+
+
 def context_from_api_payload(data):
     """Build simulation_context from JSON (same keys as the main form)."""
-    Nc = 2.8e19
-    Nv = 1.04e19
-    Eg = 1.12
+    Nc = fb.NC_SI_CM3_300K
+    Nv = fb.NV_SI_CM3_300K
+    Eg = fb.EG_SI_EV_300K
     Nd = 1e17
     T = 300.0
     tau = 0.24e-15
@@ -239,9 +381,17 @@ def context_from_api_payload(data):
     if isinstance(lat, str) and lat in BZ_LATTICES:
         bz_lattice = lat
 
+    layer_src = data.get('bz_layers')
+    if layer_src is None:
+        layer_src = data.get('layers')
+    bz_layers = parse_bz_layers_json(layer_src, bz_zones)
+
+    recip_vertices, recip_c_axis = parse_recip_api(data)
+
     return simulation_context(
         Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0_m, b_m,
-        bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+        bz_lattice, bz_a, bz_b, bz_angle, bz_zones, bz_layers=bz_layers,
+        recip_vertices=recip_vertices, recip_c_axis=recip_c_axis,
     )
 
 
@@ -264,16 +414,6 @@ def pplot(fig):
 def fermi_dirac(E, Ef, T):
     x = (E - Ef) / (k_B * max(T, 1) / eV)
     return 1.0 / (np.exp(np.clip(x, -500, 500)) + 1)
-
-
-def ni_calc(Nc, Nv, Eg, T):
-    return np.sqrt(Nc * Nv) * np.exp(-Eg * eV / (2 * k_B * max(T, 1)))
-
-
-def ef_n(Ec, Nd, ni, T):
-    if ni <= 0 or Nd <= 0:
-        return Ec
-    return Ec + (k_B * max(T, 1) / eV) * np.log(max(Nd, 1e-30) / max(ni, 1e-30))
 
 
 def mu_calc(T, Nd):
@@ -322,55 +462,75 @@ def kp_dispersion(a, V0_J, b, N=None):
 
 # Plot functions
 
-def plt_fermi_dirac(Ef, T):
-    E   = np.linspace(Ef - 0.6, Ef + 0.6, _n(600))
-    fig = go.Figure(layout=make_layout('Fermi-Dirac Distribution'))
-    for i, Ti in enumerate([100, 200, T, 500, 800]):
+def plt_fermi_dirac(Nc, Nv, Eg, Nd, T_ref):
+    """f(E) vs E with Ef(T) recomputed for each curve at fixed Nd (non-degenerate n-type)."""
+    Ec, Ev = 0.0, -Eg
+    E = np.linspace(Ev - 0.08, Ec + 0.08, _n(600))
+    fig = go.Figure(layout=make_layout('Fermi–Dirac (Ef varies with T at fixed Nd)'))
+    temps = [100, 200, T_ref, 500, 800]
+    for i, Ti in enumerate(temps):
+        ni_i = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti)
+        Ef_i = fb.fermi_level_n_type(Ec, Ev, Nc, Nv, Nd, ni_i, Ti)
+        lw = 2.6 if int(round(Ti)) == int(round(T_ref)) else 2.0
         fig.add_trace(go.Scatter(
-            x=fermi_dirac(E, Ef, Ti), y=E,
-            mode='lines', name=f'{int(Ti)} K',
-            line=dict(color=COLORS[i % len(COLORS)], width=2)))
-    fig.add_hline(y=Ef,
-                  line=dict(color='rgba(255,184,0,0.4)', dash='dot', width=1))
+            x=fermi_dirac(E, Ef_i, Ti), y=E,
+            mode='lines', name=f'{int(Ti)} K, Ef={Ef_i:.3f} eV',
+            line=dict(color=COLORS[i % len(COLORS)], width=lw)))
+    ni0 = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T_ref)
+    Ef0 = fb.fermi_level_n_type(Ec, Ev, Nc, Nv, Nd, ni0, T_ref)
+    fig.add_hline(y=Ef0,
+                  line=dict(color='rgba(255,184,0,0.45)', dash='dot', width=1),
+                  annotation_text=f'Ef @ {int(T_ref)} K',
+                  annotation_font=dict(size=8, color='#ffb800'))
+    fig.add_hline(y=Ec, line=dict(color='rgba(0,240,255,0.25)', width=1, dash='dot'))
+    fig.add_hline(y=Ev, line=dict(color='rgba(255,62,138,0.25)', width=1, dash='dot'))
     fig.update_layout(xaxis_title='f(E)', yaxis_title='Energy (eV)')
     return pplot(fig)
 
 
-def plt_dos(m_eff_ratio, Ec, Ev, T, Ef):
-    m_eff = m_eff_ratio * m0
-    E     = np.linspace(Ev - 0.1, Ec + 1.0, _n(800))
+def plt_dos(m_n_ratio, m_p_ratio, Ec, Ev, T, Ef):
+    """
+    3D parabolic bands: g(E) ∝ √(E−Ec) (CB), √(Ev−E) (VB), per eV per cm³.
+    m_n* from slider; m_p* separate (Si-like valence DOS mass).
+    """
+    m_cb = max(float(m_n_ratio), 1e-4) * m0
+    m_vb = max(float(m_p_ratio), 1e-4) * m0
+    E    = np.linspace(Ev - 0.15, Ec + 0.35, _n(800))
     dos_c = np.zeros_like(E)
-    cb    = E > Ec
-    if cb.any():
-        dos_c[cb] = ((1/(2*np.pi**2)) * (2*m_eff/hbar**2)**1.5
-                     * np.sqrt((E[cb]-Ec)*eV) * eV / 1e6)
     dos_v = np.zeros_like(E)
-    vb    = E < Ev
+    cb = E > Ec
+    vb = E < Ev
+    if cb.any():
+        dE_J = np.maximum((E[cb] - Ec) * eV, 0.0)
+        dos_c[cb] = ((1 / (2 * np.pi ** 2)) * (2 * m_cb / hbar ** 2) ** 1.5
+                     * np.sqrt(dE_J) * eV / 1e6)
     if vb.any():
-        dos_v[vb] = ((1/(2*np.pi**2)) * (2*m_eff/hbar**2)**1.5
-                     * np.sqrt((Ev-E[vb])*eV) * eV / 1e6)
-    norm = max(dos_c.max(), dos_v.max(), 1e-10)
+        dE_J = np.maximum((Ev - E[vb]) * eV, 0.0)
+        dos_v[vb] = ((1 / (2 * np.pi ** 2)) * (2 * m_vb / hbar ** 2) ** 1.5
+                     * np.sqrt(dE_J) * eV / 1e6)
+    norm = max(dos_c.max(), dos_v.max(), 1e-30)
     f    = fermi_dirac(E, Ef, T)
-    fig  = go.Figure(layout=make_layout('Density of States & Fermi Occupation'))
-    fig.add_trace(go.Scatter(x=E, y=dos_c/norm, mode='lines', name='DoS CB',
+    fig  = go.Figure(layout=make_layout('DOS (3D parabolic) & Fermi occupation'))
+    fig.add_trace(go.Scatter(x=E, y=dos_c / norm, mode='lines', name='g_c (CB)',
         line=dict(color=COLORS[0], width=2),
         fill='tozeroy', fillcolor='rgba(0,240,255,0.05)'))
-    fig.add_trace(go.Scatter(x=E, y=dos_v/norm, mode='lines', name='DoS VB',
+    fig.add_trace(go.Scatter(x=E, y=dos_v / norm, mode='lines', name='g_v (VB)',
         line=dict(color=COLORS[3], width=2),
         fill='tozeroy', fillcolor='rgba(255,62,138,0.05)'))
     fig.add_trace(go.Scatter(x=E, y=f, mode='lines', name='f(E)',
         line=dict(color=COLORS[2], width=1.8, dash='dash')))
-    fig.add_trace(go.Scatter(x=E, y=(dos_c/norm)*f, mode='lines',
-        name='Occupied CB',
+    fig.add_trace(go.Scatter(x=E, y=(dos_c / norm) * f, mode='lines',
+        name='g_c·f (occupied CB)',
         line=dict(color=COLORS[1], width=2),
         fill='tozeroy', fillcolor='rgba(0,255,157,0.05)'))
+    fig.add_vline(x=Ef, line=dict(color='rgba(255,184,0,0.35)', dash='dot', width=1))
     fig.update_layout(xaxis_title='Energy (eV)', yaxis_title='Normalized')
     return pplot(fig)
 
 
 def plt_ni_vs_T(Nc, Nv, Eg):
     T  = np.linspace(150, 900, _n(400))
-    ni = np.array([ni_calc(Nc, Nv, Eg, Ti) for Ti in T])
+    ni = np.array([fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti) for Ti in T])
     fig = go.Figure(layout=make_layout('ni vs Temperature'))
     fig.add_trace(go.Scatter(x=T, y=ni, mode='lines',
         line=dict(color=COLORS[0], width=2.5),
@@ -381,16 +541,18 @@ def plt_ni_vs_T(Nc, Nv, Eg):
 
 
 def plt_mobility_vs_T(Nd):
+    Nd   = max(float(Nd), 1e-30)
     T    = np.linspace(80, 700, _n(400))
     mu   = np.array([mu_calc(Ti, Nd) for Ti in T])
+    mu   = np.clip(mu, 1e-6, None)
     mu_L = 1350.0 * (T / 300.0) ** -2.3
     fig  = go.Figure(layout=make_layout('Mobility vs Temperature'))
-    fig.add_trace(go.Scatter(x=T, y=mu, mode='lines', name='Total mu',
+    fig.add_trace(go.Scatter(x=T, y=mu, mode='lines', name='Total μ',
         line=dict(color=COLORS[1], width=2.5)))
-    fig.add_trace(go.Scatter(x=T, y=mu_L, mode='lines', name='Lattice mu',
+    fig.add_trace(go.Scatter(x=T, y=mu_L, mode='lines', name='Lattice μ',
         line=dict(color=COLORS[0], width=1.5, dash='dash')))
-    fig.update_layout(xaxis_title='T (K)',
-                      yaxis_title='mu (cm^2/V.s)', yaxis_type='log')
+    fig.update_layout(xaxis_title='T (K)', yaxis_title='μ (cm²/V·s)',
+                      yaxis_type='linear')
     return pplot(fig)
 
 
@@ -400,11 +562,9 @@ def plt_carrier_vs_T(Nc, Nv, Eg, Nd):
     Ev   = -Eg
     n_a, p_a, ni_a = [], [], []
     for Ti in T:
-        ni_v = ni_calc(Nc, Nv, Eg, Ti)
-        Ef_v = ef_n(Ec, Nd, ni_v, Ti)
-        kT   = k_B * max(Ti, 1) / eV
-        n_v  = Nc * np.exp(-(Ec - Ef_v) / kT)
-        p_v  = ni_v**2 / max(n_v, 1.0)
+        ni_v = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti)
+        Ef_v = fb.fermi_level_n_type(Ec, Ev, Nc, Nv, Nd, ni_v, Ti)
+        n_v, p_v = fb.carrier_concentration(Ef_v, Ec, Ev, Nc, Nv, Ti)
         n_a.append(n_v)
         p_a.append(p_v)
         ni_a.append(ni_v)
@@ -424,7 +584,7 @@ def plt_conductivity_vs_T(Nc, Nv, Eg, Nd):
     T    = np.linspace(150, 700, _n(400))
     vals = []
     for Ti in T:
-        ni_v = ni_calc(Nc, Nv, Eg, Ti)
+        ni_v = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, Ti)
         n_v  = max(Nd, ni_v)
         mu_v = mu_calc(Ti, Nd)
         vals.append(sigma_calc(n_v, mu_v))
@@ -441,7 +601,11 @@ def plt_ef_vs_doping(Nc, Nv, Eg, T):
     Nd_arr = np.logspace(13, 20, _n(300))
     Ec     = 0.0
     Ev     = -Eg
-    Ef_arr = [ef_n(Ec, Nd, ni_calc(Nc, Nv, Eg, T), T) for Nd in Nd_arr]
+    Ef_arr = [
+        fb.fermi_level_n_type(
+            Ec, Ev, Nc, Nv, Nd_i,
+            fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T), T)
+        for Nd_i in Nd_arr]
     fig    = go.Figure(layout=make_layout('Fermi Level vs Doping (n-type)'))
     fig.add_trace(go.Scatter(x=Nd_arr, y=Ef_arr, mode='lines',
         line=dict(color=COLORS[4], width=2.5)))
@@ -592,13 +756,13 @@ def plt_kp_3d(a, V0_J, b):
     return pplot(fig)
 
 
-def plt_reciprocal_lattice():
-    return rl.plot_reciprocal_lattice_3d()
+def plt_reciprocal_lattice(vertices, c_axis=0.6):
+    return rl.plot_reciprocal_lattice_3d(vertices=vertices, c_axis=c_axis)
 
 
 def plt_hall(Nc, Nv, Eg, Nd):
     T   = 300
-    ni  = ni_calc(Nc, Nv, Eg, T)
+    ni  = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
     n   = max(Nd, ni)
     B   = np.linspace(0, 3, _n(300))
     R_H = 1.0 / (n * q * 1e6)
@@ -612,9 +776,11 @@ def plt_hall(Nc, Nv, Eg, Nd):
     return pplot(fig)
 
 
-def plt_iv_diode(T, Eg):
+def plt_iv_diode(T, Eg, Nc=None, Nv=None):
     V   = np.linspace(-0.5, 0.8, _n(500))
-    ni  = ni_calc(2e19, 1e19, Eg, T)
+    Nc  = fb.NC_SI_CM3_300K if Nc is None else Nc
+    Nv  = fb.NV_SI_CM3_300K if Nv is None else Nv
+    ni  = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
     I0  = q * ni * 1e-4
     I   = I0 * (np.exp(np.clip(q*V/(k_B*max(T,1)), -500, 500)) - 1)
     fig = go.Figure(layout=make_layout('p-n Junction I-V Characteristic'))
@@ -805,15 +971,21 @@ def plt_tauc(Eg=1.12):
 
 def plt_sdh():
     """Illustrative Shubnikov–de Haas: longitudinal resistance oscillations vs B."""
-    B = np.linspace(0.35, 7.0, _n(550))
+    B = np.linspace(0.2, 8.0, _n(700))
+    B_safe = np.maximum(B, 0.08)
     F = 52.0
-    dingle = np.exp(-0.22 / np.maximum(B, 0.06))
-    R = 1200.0 * (1.0 + 0.045 * dingle * np.cos(2.0 * np.pi * F / B + 0.3))
+    dingle = np.exp(-0.18 / B_safe)
+    osc = 0.14 * dingle * np.cos(2.0 * np.pi * F / B_safe + 0.25)
+    R = 1200.0 * (1.0 + osc)
 
-    fig = go.Figure(layout=make_layout('Shubnikov–de Haas (illustrative R vs B)'))
-    fig.add_trace(go.Scatter(x=B, y=R, mode='lines', name='R_xx',
-                             line=dict(color=COLORS[5], width=1.8)))
-    fig.update_layout(xaxis_title='B (T)', yaxis_title='R_xx (Ω, scaled model)')
+    fig = go.Figure(layout=make_layout('Shubnikov–de Haas (illustrative R_xx vs B)'))
+    fig.add_trace(go.Scatter(
+        x=B, y=R, mode='lines', name='R_xx',
+        line=dict(color=COLORS[5], width=2.0),
+        hovertemplate='B=%{x:.2f} T<br>R=%{y:.1f}<extra></extra>'))
+    fig.update_layout(
+        xaxis_title='B (T)', yaxis_title='R_xx (Ω, model)',
+        yaxis=dict(rangemode='tozero'))
     return pplot(fig)
 
 
@@ -821,10 +993,10 @@ def plt_sdh():
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    # Defaults — Silicon at 300K
-    Nc          = 2.8e19
-    Nv          = 1.04e19
-    Eg          = 1.12
+    # Defaults — Si literature values (see fermi_boltzmann module docstring)
+    Nc          = fb.NC_SI_CM3_300K
+    Nv          = fb.NV_SI_CM3_300K
+    Eg          = fb.EG_SI_EV_300K
     Nd          = 1e17
     T           = 300.0
     tau         = 0.24e-15
@@ -838,6 +1010,16 @@ def home():
     bz_b        = 1.5
     bz_angle    = 120.0
     bz_zones    = 4
+
+    active_section = (request.args.get('section') or '').strip()
+    if request.method == 'POST':
+        active_section = (request.form.get('active_section') or active_section).strip()
+    if active_section not in oqs.SECTION_BY_ID:
+        active_section = ''
+
+    recip_vertices = rl.DEFAULT_VERTICES.copy()
+    recip_n = int(recip_vertices.shape[0])
+    recip_c_axis = 0.6
 
     if request.method == 'POST':
         Nc          = gf(request.form, 'Nc',    Nc)
@@ -857,13 +1039,32 @@ def home():
         bz_b        = gf(request.form, 'bz_b',     bz_b)
         bz_angle    = gf(request.form, 'bz_angle', bz_angle)
         bz_zones    = gi(request.form, 'bz_zones', bz_zones, lo=1, hi=10)
+        bz_layers   = parse_bz_layers_raw(
+            request.form.get('bz_layers'), bz_zones)
+        recip_vertices, recip_n, recip_c_axis = parse_recip_from_form(request.form)
         open_plots = parse_open_plots(request.form)
     else:
-        open_plots = frozenset(DEFAULT_OPEN_PLOTS)
+        open_plots = frozenset()
+        bz_layers = tuple(range(1, max(1, min(10, int(bz_zones))) + 1))
+
+    section = oqs.SECTION_BY_ID.get(active_section)
+    sidebar_tags = oqs.sidebar_tags_for_section(active_section)
+    section_plots = oqs.plots_for_section(active_section)
+    wiki_note = fetch_wikipedia_extract(section['wiki_title']) if section else ''
+    theory_block = ''
+    if section:
+        theory_block = section['theory']
+        if wiki_note:
+            theory_block += ' — Wikipedia: ' + wiki_note
+
+    recip_list = recip_vertices.tolist()
+    while len(recip_list) < 8:
+        recip_list.append([0.0, float(len(recip_list)) * 0.2, 0.0])
 
     ctx = simulation_context(
         Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0, b,
-        bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+        bz_lattice, bz_a, bz_b, bz_angle, bz_zones, bz_layers=bz_layers,
+        recip_vertices=recip_vertices, recip_c_axis=recip_c_axis,
     )
     ni = ctx['ni']
     Ef = ctx['Ef']
@@ -883,6 +1084,7 @@ def home():
 
     plots = build_plots()
     open_plots_csv = ','.join(sorted(open_plots))
+    bz_layers_all = tuple(range(1, bz_zones + 1)) == tuple(bz_layers)
 
     return render_template(
         'index.html',
@@ -893,9 +1095,23 @@ def home():
         mu=mu, sigma=sigma, l=l_mfp,
         bz_lattice=bz_lattice, bz_a=bz_a, bz_b=bz_b,
         bz_angle=bz_angle, bz_zones=bz_zones,
+        bz_layers=bz_layers,
+        bz_layers_all=bz_layers_all,
+        bz_layers_csv=('all' if bz_layers_all else ','.join(str(z) for z in bz_layers)),
         open_plots=open_plots,
         open_plots_csv=open_plots_csv,
         plot_placeholder_html=PLOT_PLACEHOLDER,
+        active_section=active_section,
+        oq_sections=oqs.SECTIONS_ORDER,
+        section_meta=section,
+        sidebar_tags=sidebar_tags,
+        section_plots=section_plots,
+        theory_block=theory_block,
+        plot_titles=PLOT_TITLES,
+        recip_n=recip_n,
+        recip_c_axis=recip_c_axis,
+        recip_list=recip_list,
+        recip_vertices=recip_vertices,
         **plots
     )
 
@@ -919,10 +1135,16 @@ def api_bz():
         n_zones = max(1, min(10, n_zones))
     except (TypeError, ValueError):
         n_zones = 4
+    layer_src = data.get('layers')
+    if layer_src is None:
+        layer_src = data.get('bz_layers')
+    zones_to_show = parse_bz_layers_json(layer_src, n_zones)
+
     try:
         div = plot_brillouin_zones(
             lattice=lattice, a=a, b=b,
-            angle=angle, n_zones=n_zones)
+            angle=angle, n_zones=n_zones,
+            zones_to_show=zones_to_show)
         return jsonify({'plot': div})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -403,11 +403,12 @@
 
     // Welcome message
     setTimeout(() => addBotMessage(
-      "👋 Hi! I'm **PhysBot**, the AI assistant for **OPEN-Quantum**.\n\n" +
-      "I retrieve live knowledge from **Wikipedia** and **ArXiv** on every query — " +
-      "no stale manual knowledge base. I also connect to **llama3 via Ollama** if running locally.\n\n" +
-      "Ask me anything about semiconductors, band theory, MOSFETs, Brillouin zones, " +
-      "carrier transport, phonons, and more!",
+      "👋 Hi! I'm **PhysBot**, the assistant for **OPEN-Quantum**.\n\n" +
+      "Ask me about semiconductors: bands, carriers, **mobility** and **scattering**, " +
+      "p–n junctions, MOSFETs, Brillouin zones, phonons, and more. " +
+      "I answer from built-in physics notes; if you run an optional **local LLM**, " +
+      "it can synthesize longer answers using the same retrieved references.\n\n" +
+      "Try the suggestion chips or a concrete keyword (e.g. **mean free path**).",
       [], 0
     ), 300);
   }

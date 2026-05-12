@@ -68,28 +68,42 @@
        SIDEBAR
   ════════════════════════════════════════ -->
   <aside class="sidebar">
-    <form method="POST" id="sim-form">
+    <form method="POST" id="sim-form" action="{{ url_for('home') }}"
+          onsubmit="return oqPrepSubmit();">
+      <input type="hidden" name="active_section" id="active-section-field" value="{{ active_section }}">
 
+      {% if not active_section %}
+      <div class="oq-guided-hero">
+        <strong style="color:var(--cyan);">What do you want OQ to help you with?</strong><br>
+        Choose a workspace below. You will get a short theory note (plus a live Wikipedia extract when online),
+        only the sliders that matter for that topic, and checkboxes so <em>only the plots you pick</em> are generated (saves RAM on small hosts).
+        <div class="oq-section-grid">
+          {% for sec in oq_sections %}
+          <a class="oq-section-link" href="{{ url_for('home', section=sec.id) }}">{{ sec.title }} — open</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
       <p class="sidebar-intro">
-        Parameters are grouped like the plot sections. Drag sliders or type values;
-        values highlight as they change. Jump to any section with the chips below.
-        <strong style="color:var(--green);">First six charts</strong> load on open; use
-        <strong>Render this</strong> on any other card when you need it (keeps small servers under memory limits).
+        <strong style="color:var(--cyan);">{{ section_meta.title if section_meta else '' }}</strong><br>
+        <span style="color:var(--text-2);font-size:0.68rem;">{{ section_meta.subtitle if section_meta else '' }}</span><br>
+        <a href="{{ url_for('home') }}" style="color:var(--amber);font-size:0.65rem;">← Change topic</a>
       </p>
-
-      <nav class="sidebar-quicknav" aria-label="Jump to plot sections">
-        <a href="#section-plots-stats">Stats</a>
-        <a href="#section-plots-transport">Transport</a>
-        <a href="#section-plots-doping">Doping</a>
-        <a href="#section-plots-devices">Junctions</a>
-        <a href="#section-plots-ek">E(k)</a>
-        <a href="#section-plots-kp">KP</a>
-        <a href="#section-bz">BZ</a>
-        <a href="#section-plots-lattice">Phonons</a>
+      <nav class="sidebar-quicknav" aria-label="Jump inside this topic">
+        <span style="color:var(--text-3);font-size:0.55rem;width:100%;">Quick scroll</span>
+        {% if active_section == 'stats' %}<a href="#section-plots-stats">Stats plots</a>{% endif %}
+        {% if active_section == 'transport' %}<a href="#section-plots-transport">Transport</a>{% endif %}
+        {% if active_section == 'doping' %}<a href="#section-plots-doping">Doping</a>{% endif %}
+        {% if active_section == 'devices' %}<a href="#section-plots-devices">Devices</a>{% endif %}
+        {% if active_section == 'ek' %}<a href="#section-plots-ek">E(k)</a>{% endif %}
+        {% if active_section == 'kp' %}<a href="#section-plots-kp">KP</a>{% endif %}
+        {% if active_section == 'bz' %}<a href="#section-bz">BZ</a>{% endif %}
+        {% if active_section == 'lattice' %}<a href="#section-plots-lattice">Lattice</a>{% endif %}
       </nav>
+      {% endif %}
 
       <!-- 1 · Quantum statistics (same plots: Fermi–Dirac, DoS, QW) -->
-      <details class="sidebar-panel sidebar-panel--stats" open>
+      <details class="sidebar-panel sidebar-panel--stats {% if 'p_stats' not in sidebar_tags %}oq-sidebar-hidden{% endif %}" open>
         <summary>
           <span class="sidebar-panel-num">1</span>
           <div class="sidebar-panel-titles">
@@ -180,11 +194,18 @@
           <div class="range-bounds"><span>100 K</span><span>900 K</span></div>
         </div>
 
+        <p class="sidebar-blurb" style="margin-top:0.55rem;margin-bottom:0;">
+          <button type="button" class="btn-compute"
+                  style="font-size:0.6rem;padding:0.35rem 0.55rem;margin-right:0.45rem;"
+                  onclick="applySiLiteratureDefaults()">Si 300K (Nc, Nv, Eg)</button>
+          <span style="color:var(--text-3);font-size:0.6rem;">Literature bulk-Si numbers (e.g. Green, JAP 1990; Wikipedia: intrinsic carrier concentration).</span>
+        </p>
+
         </div>
       </details>
 
       <!-- 2 · Drude / transport bar -->
-      <details class="sidebar-panel sidebar-panel--transport" open>
+      <details class="sidebar-panel sidebar-panel--transport {% if 'p_transport' not in sidebar_tags %}oq-sidebar-hidden{% endif %}" open>
         <summary>
           <span class="sidebar-panel-num">2</span>
           <div class="sidebar-panel-titles">
@@ -247,7 +268,7 @@
       </details>
 
       <!-- 3 · Kronig–Penney -->
-      <details class="sidebar-panel sidebar-panel--kp" open>
+      <details class="sidebar-panel sidebar-panel--kp {% if 'p_kp' not in sidebar_tags %}oq-sidebar-hidden{% endif %}" open>
         <summary>
           <span class="sidebar-panel-num">3</span>
           <div class="sidebar-panel-titles">
@@ -310,7 +331,7 @@
       </details>
 
       <!-- 4 · Brillouin (controls live in main column) -->
-      <details class="sidebar-panel sidebar-panel--bz">
+      <details class="sidebar-panel sidebar-panel--bz {% if 'p_bz' not in sidebar_tags %}oq-sidebar-hidden{% endif %}">
         <summary>
           <span class="sidebar-panel-num">4</span>
           <div class="sidebar-panel-titles">
@@ -327,14 +348,62 @@
         </div>
       </details>
 
+      <!-- 5 · Real / reciprocal lattice (vertex inputs) -->
+      <details class="sidebar-panel sidebar-panel--lattice {% if 'p_lattice' not in sidebar_tags %}oq-sidebar-hidden{% endif %}" open>
+        <summary>
+          <span class="sidebar-panel-num">5</span>
+          <div class="sidebar-panel-titles">
+            <span class="sidebar-panel-title">Real lattice vertices</span>
+            <span class="sidebar-panel-hint">R0… in 3D → primitive aⱼ and bⱼ</span>
+          </div>
+          <a href="#section-plots-lattice" class="sidebar-jump" onclick="event.stopPropagation()">Plots ↓</a>
+        </summary>
+        <div class="sidebar-panel-body">
+          <p class="sidebar-blurb" style="font-size:0.62rem;margin-bottom:0.6rem;">
+            R0 is the origin corner. a₁=R1−R0, a₂=R2−R0; if R3−R0 is independent in 3D it defines a₃, otherwise a₃ is the scaled normal (a₁×a₂) with thickness <em>c</em> below.
+          </p>
+          <div class="param-row">
+            <div class="param-label">
+              <span class="pname">Vertices N (3–8)</span>
+              <input type="number" class="param-num-input" name="recip_n" id="recip-n"
+                     min="3" max="8" step="1" value="{{ recip_n }}"
+                     onchange="oqRecipRowsVisible();">
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-label">
+              <span class="pname">Out-of-plane c if coplanar</span>
+              <input type="number" class="param-num-input" name="recip_c_axis"
+                     value="{{ '%.3f'|format(recip_c_axis) }}" min="0.05" max="5" step="0.05">
+            </div>
+          </div>
+          {% for i in range(8) %}
+          <div class="oq-recip-row" data-i="{{ i }}" style="{% if i >= recip_n %}display:none{% endif %};margin-bottom:0.35rem;">
+            <div style="font-size:0.58rem;color:var(--text-3);margin-bottom:2px;">R{{ i }} (x, y, z)</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <input type="number" class="param-num-input" name="recip_{{ i }}_x" step="any"
+                     value="{{ '%.5f'|format(recip_list[i][0]) }}" style="flex:1;min-width:4rem;">
+              <input type="number" class="param-num-input" name="recip_{{ i }}_y" step="any"
+                     value="{{ '%.5f'|format(recip_list[i][1]) }}" style="flex:1;min-width:4rem;">
+              <input type="number" class="param-num-input" name="recip_{{ i }}_z" step="any"
+                     value="{{ '%.5f'|format(recip_list[i][2]) }}" style="flex:1;min-width:4rem;">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </details>
+
       <input type="hidden" name="open_plots" id="open-plots-field" value="{{ open_plots_csv }}">
       <input type="hidden" name="bz_lattice" id="hid-bz-lattice" value="{{ bz_lattice }}">
       <input type="hidden" name="bz_a" id="hid-bz-a" value="{{ bz_a }}">
       <input type="hidden" name="bz_b" id="hid-bz-b" value="{{ bz_b }}">
       <input type="hidden" name="bz_angle" id="hid-bz-angle" value="{{ bz_angle }}">
       <input type="hidden" name="bz_zones" id="hid-bz-zones" value="{{ bz_zones }}">
+      <input type="hidden" name="bz_layers" id="hid-bz-layers" value="{{ bz_layers_csv }}">
 
-      <button type="submit" class="btn-compute">Compute parameters</button>
+      {% if active_section %}
+      <button type="submit" class="btn-compute">Apply parameters &amp; load selected plots</button>
+      {% endif %}
     </form>
   </aside>
 
@@ -351,7 +420,34 @@
     </button>
     {%- endmacro %}
 
+    {% if not active_section %}
+    <div class="oq-main-landing">
+      <h2>What do you want OQ to help you with?</h2>
+      <p style="color:var(--text-2);font-size:0.88rem;margin-top:0.5rem;">
+        Select a workspace in the sidebar, or use the links below. Each mode loads curated theory, Wikipedia context when online, and only the plots you choose.
+      </p>
+      <div class="oq-section-grid" style="max-width:440px;margin:1.25rem auto 0;text-align:left;">
+        {% for sec in oq_sections %}
+        <a class="oq-section-link" href="{{ url_for('home', section=sec.id) }}">{{ sec.title }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="oq-theory-main">{{ theory_block }}</div>
+    <div class="oq-pick-grid">
+      <span style="font-size:0.58rem;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;width:100%;">
+        Which plots should OQ generate? (check, then <strong>Apply parameters</strong> — or use <strong>Render this</strong> on a card)
+      </span>
+      {% for pk in section_plots %}
+      <label><input type="checkbox" class="oq-plot-pick" value="{{ pk }}"
+        {% if pk in open_plots %}checked{% endif %}>
+        {{ plot_titles[pk] }}</label>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- ── Results Bar ───────────────────────────────────── -->
+    {% if active_section %}
     <div class="results-bar">
       <div class="result-cell">
         <div class="rl">Intrinsic nᵢ</div>
@@ -389,15 +485,18 @@
         <div class="ru">m</div>
       </div>
     </div>
+    {% endif %}
 
+    <div class="oq-sec-block" {% if active_section != 'stats' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          1. QUANTUM STATISTICS & OCCUPATION
     ══════════════════════════════════════ -->
     <div class="section-header" id="section-plots-stats">Quantum Statistics &amp; Occupation</div>
     <div class="eq-strip">
       <span>f(E) = 1 / (e<sup>(E−Eᶠ)/kT</sup> + 1)</span>
-      <span class="eq">Eᶠ = Ec + kT·ln(Nd/nᵢ)</span>
-      <span>nᵢ = √(Nc·Nv) · e<sup>−Eg/2kT</sup></span>
+      <span class="eq">Eᵢ = ½(Ec+Ev) + ½kT ln(Nv/Nc)</span>
+      <span class="eq">Eᶠ = Eᵢ + kT·ln(Nd/nᵢ)</span>
+      <span>nᵢ = √(Nc·Nv) · e<sup>−Eg/2kT</sup> &nbsp; <span style="opacity:0.82">(kT in eV; non-degenerate)</span></span>
     </div>
     <div class="plot-grid">
       <div class="plot-card" data-plot-key="fd">
@@ -423,6 +522,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'transport' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          2. TRANSPORT & CARRIER PROPERTIES
     ══════════════════════════════════════ -->
@@ -470,6 +572,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'doping' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          3. DOPING & ENERGY LEVELS
     ══════════════════════════════════════ -->
@@ -512,6 +617,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'devices' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          4. JUNCTIONS & DEVICES
     ══════════════════════════════════════ -->
@@ -554,9 +662,8 @@
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════
-         5. E(k) SCHEMATICS & KRONIG–PENNEY
-    ══════════════════════════════════════ -->
+    <div class="oq-sec-block" {% if active_section != 'ek' %}style="display:none"{% endif %}>
+    <!-- E(k) schematics -->
     <div class="section-header" id="section-plots-ek">Band structure <span class="eq">E</span>(<span class="eq">k</span>) — Schematics</div>
     <div class="eq-strip">
       <span>Direct gap: CB minimum and VB maximum at the same <em>k</em> (e.g. GaAs)</span>
@@ -572,6 +679,10 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'kp' %}style="display:none"{% endif %}>
+    <!-- Kronig–Penney -->
     <div class="section-header" id="section-plots-kp">Kronig–Penney Band Structure</div>
     <div class="eq-strip">
       <span class="eq">
@@ -604,15 +715,19 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'bz' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          6. BRILLOUIN ZONES  (1st – 10th)
     ══════════════════════════════════════ -->
     <div class="section-header" id="section-bz">Brillouin Zones — 1<sup>st</sup> through 10<sup>th</sup></div>
     <div class="eq-strip">
       <span class="eq">
-        BZ<sub>n</sub> = { k : k crosses exactly n−1 Bragg planes from Γ }
+        BZ index: count distinct Bragg planes <strong>k·G = |G|²/2</strong> intersected along segment Γ → k
+        (extended zones; multiple selections overlap with transparency)
       </span>
-      <span>Area(BZ<sub>n</sub>) = Area(recip. unit cell) &nbsp;∀ n</span>
+      <span>Same area per sheet: ∑<sub>n</sub> Area(BZ<sub>n</sub>) tiles k-space</span>
     </div>
 
     <!-- BZ Control Panel -->
@@ -703,6 +818,29 @@
         <!-- Zone color legend -->
         <div id="bz-legend"
              style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
+
+        <div id="bz-layer-row" style="margin-top:12px;max-width:520px;">
+          <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--text-2);
+                      letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
+            Which zones to draw
+          </div>
+          <label style="font-size:0.65rem;cursor:pointer;color:var(--text-2);display:block;margin-bottom:8px;">
+            <input type="checkbox" id="bz-cb-all" {% if bz_layers_all %}checked{% endif %}>
+            All zones <span style="opacity:0.75">(1–<span id="bz-all-n-label">{{ bz_zones }}</span>, overlaid)</span>
+          </label>
+          <div id="bz-cb-wrap" style="display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;">
+            {% for z in range(1, 11) %}
+            <label class="bz-z-label" data-z="{{ z }}"
+                   style="font-family:var(--font-mono);font-size:0.6rem;cursor:pointer;
+                          opacity:{{ 0.35 if z > bz_zones else 1.0 }};">
+              <input type="checkbox" class="bz-z-cb" data-z="{{ z }}"
+                     {% if z <= bz_zones and z in bz_layers %}checked{% endif %}
+                     {% if z > bz_zones %}disabled{% endif %}>
+              Z{{ z }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
       </div>
 
       <!-- Render button -->
@@ -731,6 +869,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="oq-sec-block" {% if active_section != 'lattice' %}style="display:none"{% endif %}>
     <!-- ══════════════════════════════════════
          7. LATTICE DYNAMICS & PHONONS
     ══════════════════════════════════════ -->
@@ -752,6 +893,8 @@
       </div>
     </div>
 
+    </div>
+
   </main>
 </div><!-- /.app-layout -->
 
@@ -768,6 +911,26 @@
 <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
 <script>
   window.PLOT_PLACEHOLDER_HTML = {{ plot_placeholder_html | tojson }};
+
+  function oqPrepSubmit() {
+    var picks = Array.from(document.querySelectorAll('.oq-plot-pick:checked'))
+      .map(function (x) { return x.value; });
+    var field = document.getElementById('open-plots-field');
+    if (field) field.value = picks.join(',');
+    if (typeof syncBzLayersHidden === 'function') syncBzLayersHidden();
+    if (typeof syncBZHiddenToForm === 'function') syncBZHiddenToForm();
+    return true;
+  }
+
+  function oqRecipRowsVisible() {
+    var el = document.getElementById('recip-n');
+    var n = el ? parseInt(el.value, 10) || 3 : 3;
+    n = Math.max(3, Math.min(8, n));
+    document.querySelectorAll('.oq-recip-row').forEach(function (row) {
+      var i = parseInt(row.getAttribute('data-i'), 10);
+      row.style.display = (i < n) ? '' : 'none';
+    });
+  }
 </script>
 <script src="{{ url_for('static', filename='plot-cards.js') }}"></script>
 
@@ -813,6 +976,12 @@ function syncNum(rangeId, rawVal, fmt, unit) {
   if (num) num.value = formatVal(v, fmt, unit);
   flashParamLive(rangeId, formatVal(v, fmt, unit));
   updateRangeFill(range);
+}
+
+function applySiLiteratureDefaults() {
+  syncNum('Nc', String(2.8e19), 'sci');
+  syncNum('Nv', String(1.04e19), 'sci');
+  syncNum('Eg', '1.12', 'fix3');
 }
 
 /** tau is stored in seconds, displayed in fs */
@@ -884,6 +1053,49 @@ let bzState = {
   zones:   {{ bz_zones | int }}
 };
 
+function getBzLayersPayload() {
+  const all = document.getElementById('bz-cb-all');
+  if (all && all.checked) return 'all';
+  const sel = [];
+  const nz = bzState.zones;
+  document.querySelectorAll('.bz-z-cb').forEach(cb => {
+    if (cb.disabled) return;
+    const z = parseInt(cb.dataset.z, 10);
+    if (cb.checked && z >= 1 && z <= nz) sel.push(z);
+  });
+  return sel.length ? sel : 'all';
+}
+window.getBzLayersPayload = getBzLayersPayload;
+
+function syncBzLayersHidden() {
+  const hid = document.getElementById('hid-bz-layers');
+  if (!hid) return;
+  const p = getBzLayersPayload();
+  hid.value = (p === 'all') ? 'all' : p.join(',');
+}
+window.syncBzLayersHidden = syncBzLayersHidden;
+
+function refreshBzLayerDisabled() {
+  const nz = bzState.zones;
+  const allN = document.getElementById('bz-all-n-label');
+  if (allN) allN.textContent = String(nz);
+  document.querySelectorAll('.bz-z-cb').forEach(cb => {
+    const z = parseInt(cb.dataset.z, 10);
+    const dis = z > nz;
+    cb.disabled = dis;
+    const lab = cb.closest('.bz-z-label');
+    if (lab) lab.style.opacity = dis ? '0.35' : '1';
+    if (dis) cb.checked = false;
+  });
+  const allCb = document.getElementById('bz-cb-all');
+  if (allCb && allCb.checked) {
+    document.querySelectorAll('.bz-z-cb').forEach(cb => {
+      if (!cb.disabled) cb.checked = true;
+    });
+  }
+  syncBzLayersHidden();
+}
+
 /** Central sync for all BZ parameters */
 function syncBZ(param, val) {
   if (param === 'a') {
@@ -907,6 +1119,7 @@ function syncBZ(param, val) {
     document.getElementById('bz-zones-num').value   = bzState.zones;
     updateRangeFill(document.getElementById('bz-zones-range'));
     buildBZLegend();
+    refreshBzLayerDisabled();
   }
 }
 
@@ -940,6 +1153,7 @@ function syncBZHiddenToForm() {
   if (b) b.value = bzState.b;
   if (ang) ang.value = bzState.angle;
   if (z) z.value = bzState.zones;
+  syncBzLayersHidden();
 }
 
 /** Align BZ sliders and lattice buttons with bzState (after server round-trip). */
@@ -990,12 +1204,39 @@ function initBZUIFromState() {
     updateRangeFill(zr);
   }
   buildBZLegend();
+  refreshBzLayerDisabled();
 }
 
 /** Wire up lattice-type buttons */
 document.addEventListener('DOMContentLoaded', () => {
 
   initBZUIFromState();
+
+  const bzAll = document.getElementById('bz-cb-all');
+  if (bzAll) {
+    bzAll.addEventListener('change', () => {
+      if (bzAll.checked) {
+        document.querySelectorAll('.bz-z-cb').forEach(cb => {
+          if (!cb.disabled) cb.checked = true;
+        });
+      }
+      syncBzLayersHidden();
+    });
+  }
+  document.querySelectorAll('.bz-z-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (document.getElementById('bz-cb-all')) document.getElementById('bz-cb-all').checked = false;
+      let any = false;
+      document.querySelectorAll('.bz-z-cb').forEach(c2 => {
+        if (!c2.disabled && c2.checked) any = true;
+      });
+      if (!any) {
+        document.getElementById('bz-cb-all').checked = true;
+        refreshBzLayerDisabled();
+      }
+      syncBzLayersHidden();
+    });
+  });
 
   document.querySelectorAll('.bz-lattice-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1042,7 +1283,7 @@ function renderBZ() {
   fetch('/api/bz', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(bzState)
+    body:    JSON.stringify(Object.assign({}, bzState, { layers: getBzLayersPayload() }))
   })
   .then(r => r.json())
   .then(data => {

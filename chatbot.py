@@ -392,10 +392,10 @@ The probability that a quantum state at energy E is occupied by an electron at
 temperature T. At T=0K, f(E)=1 for E<Eᶠ and f(E)=0 for E>Eᶠ — a perfect step.
 Thermal smearing occurs over ~4kT around Eᶠ.
 
-For semiconductors: Eᶠ lies in the bandgap.
-- Intrinsic: Eᶠ ≈ (Ec+Ev)/2 + (kT/2)·ln(Nv/Nc)
-- n-type: Eᶠ = Ec + kT·ln(Nd/Nc) → moves toward Ec
-- p-type: Eᶠ = Ev − kT·ln(Na/Nv) → moves toward Ev
+For non-degenerate semiconductors: Eᶠ lies in the bandgap.
+- Intrinsic Fermi level: Eᵢ = (Ec+Ev)/2 + (kT/2)·ln(Nv/Nc)
+- n-type: Eᶠ = Eᵢ + kT·ln(Nd/nᵢ) (Nd ≫ nᵢ → Eᶠ above midgap, toward Ec)
+- p-type: Eᶠ = Eᵢ − kT·ln(Na/nᵢ) (Na ≫ nᵢ → Eᶠ below midgap, toward Ev)
 
 The intrinsic concentration nᵢ = √(Nc·Nv)·exp(−Eg/2kT), where Nc = 2(2πm*kT/h²)^(3/2).
 """,
@@ -442,21 +442,29 @@ where α = √(2mE)/ħ,  β = √(2m(V₀−E))/ħ
 Effective mass: m* = ħ²/(d²E/dk²) — positive at band bottom, negative near top.
 """,
 
-    r"drude|mobility|conductiv|transport|drift|mean free": """
-**Drude Model & Transport** [Wikipedia/Drude model]
+    r"drude|mobility|conductiv|transport|drift|mean free|scatter|collision|ballistic|"
+    r"ionized.impurity|impurity.scatter|relaxation time|momentum relaxation|matthiessen": """
+**Drude model, mobility & scattering** [Wikipedia/Drude model; Electron mobility]
 
-σ = neμ = ne²τ/m*,    μ = eτ/m*,    l = vF·τ
+σ = neμ = ne²τ/m*,    μ = eτ/m*
 
-Matthiessen's Rule:   1/μ_total = 1/μ_phonon + 1/μ_impurity
+**Mean free path:** between collisions the carrier travels a distance ℓ ≈ v·τ on average,
+where τ is the **momentum relaxation time** and v is a typical thermal speed (order √(kT/m*)),
+not the instantaneous drift speed unless you are in a very specific definition. The field
+accelerates the carrier until a scattering event randomizes momentum and/or changes energy.
 
-- μ_phonon ∝ T^(−3/2): more phonons at high T scatter electrons more
-- μ_impurity ∝ T^(3/2)/Nd: electrons move faster at high T, screen impurities
+**Scattering mechanisms** (bulk semiconductors; which dominates depends on T and doping):
+- **Ionized impurity:** Coulomb deflection by Nd⁺/Na⁻; often strong at low T and high doping
+- **Acoustic phonons:** lattice deformation potential; quasi-elastic at low q
+- **Optical phonons:** can change energy significantly; important when carriers are hot
+- Also: surface scattering, neutral defects, alloy disorder (alloys), piezoelectric (e.g. GaAs)
 
-Silicon at 300K: μn = 1350 cm²/V·s,  μp = 450 cm²/V·s
-GaAs at 300K:   μn = 8500 cm²/V·s  (direct gap, lighter m*)
+**Matthiessen's rule** (approximate):  1/μ_total ≈ Σᵢ 1/μᵢ  when mechanisms add as 1/τ.
 
-Hall effect:  R_H = 1/(nq) for n-type,  R_H = −1/(pq) for p-type
-Hall mobility: μ_H = R_H · σ
+Silicon at 300 K (order-of-magnitude tables): μn ≈ 1350 cm²/V·s, μp ≈ 450 cm²/V·s
+GaAs at 300 K: μn ~ 8000+ cm²/V·s (lighter m*, polar optical phonons matter at high E)
+
+**Hall effect:** R_H = 1/(nq) (n-type), R_H = −1/(pq) (p-type); μ_H = |R_H|·σ
 """,
 
     r"dop|n.type|p.type|donor|acceptor|extrinsic|phosphor|boron": """
@@ -571,42 +579,69 @@ Joint DoS governs optical absorption and emission rates.
 
 
 def fallback_answer(query: str, context: str) -> str:
-    """Pattern-match fallback with formula-rich responses + any retrieved context."""
+    """Pattern-match fallback with formula-rich responses (no raw Wikipedia dumps)."""
     q = query.lower()
     for pattern, answer in FALLBACK_DB.items():
         if re.search(pattern, q):
-            if context:
-                snippet = ' '.join(context.split()[:120])
-                return answer.strip() + f"\n\n*Live context retrieved: ...{snippet}...*"
             return answer.strip()
 
-    # Generic with context
+    # No unknown-topic dump: retrieved text is only for the LLM prompt, not end users.
     if context:
-        snippet = ' '.join(context.split()[:200])
-        return (f"Based on live-retrieved sources:\n\n{snippet}\n\n"
-                f"*(Install Ollama + llama3 for full AI-generated answers. "
-                f"Run: `ollama pull llama3` then `ollama serve`)*")
+        return (
+            "I don’t have a dedicated offline note that matches that question yet.\n\n"
+            "Try asking with a concrete keyword — for example **mean free path**, **scattering**, "
+            "**mobility**, **Fermi level**, **p–n junction**, **MOSFET**, **Brillouin zone**, "
+            "**phonon**, or **density of states** — or tap one of the suggestion chips."
+        )
 
-    return ("I'm **PhysBot** — the AI assistant for **OPEN-Quantum**.\n\n"
-            "I can answer questions on:\n"
-            "• Fermi-Dirac statistics & carrier concentrations\n"
-            "• Band theory, Kronig-Penney, Brillouin zones (1st–10th)\n"
-            "• Transport: Drude, mobility, Hall effect, Matthiessen's rule\n"
-            "• p-n junctions, MOSFETs, CMOS logic\n"
-            "• Phonons, density of states, heterostructures\n"
-            "• Si, Ge, GaAs, GaN parameters\n\n"
-            "**For full AI answers**: install [Ollama](https://ollama.ai) and run "
-            "`ollama pull llama3`. I retrieve live knowledge from Wikipedia & ArXiv automatically.")
+    return (
+        "I'm **PhysBot**, the assistant for **OPEN-Quantum**.\n\n"
+        "Offline, I answer from built-in notes on:\n"
+        "• Fermi–Dirac statistics and carrier concentrations\n"
+        "• Band theory, Kronig–Penney, Brillouin zones\n"
+        "• Transport: Drude model, mobility, scattering, mean free path, Hall effect\n"
+        "• Doping, p–n junctions, MOSFETs, CMOS\n"
+        "• Phonons, density of states, and common material parameters (Si, GaAs, …)\n\n"
+        "Ask a specific topic using one of those keywords for a formula-level answer."
+    )
 
 
 # ══════════════════════════════════════════════════════════════
 #  MAIN RAG PIPELINE
 # ══════════════════════════════════════════════════════════════
 
+def small_talk_reply(query: str) -> str | None:
+    """Short friendly replies without fetching Wikipedia (avoids irrelevant dumps)."""
+    q = re.sub(r'[!?.]+', '', query.strip().lower())
+    if not q:
+        return None
+    if re.match(
+        r'^(hi|hello|hey|good morning|good afternoon|good evening)\b|^how (are|r) you\b',
+        q,
+    ):
+        return (
+            "Doing well — thanks for asking. I’m **PhysBot**, here for semiconductor physics "
+            "and the OPEN-Quantum simulations.\n\n"
+            "What would you like to dig into (bands, carriers, mobility, junctions, MOSFETs, …)?"
+        )
+    if q in ("thanks", "thank you", "thx", "ok", "okay", "bye", "goodbye"):
+        return "You’re welcome — happy to help anytime you have another physics question."
+    return None
+
+
 def rag_pipeline(query: str, history: list) -> dict:
     """
     Returns dict: {reply, sources, retrieved}
     """
+    st = small_talk_reply(query)
+    if st is not None:
+        return {
+            "reply": st,
+            "sources": [],
+            "engine": "PhysBot (offline)",
+            "context_words": 0,
+        }
+
     # 1. Retrieve
     context = retrieve(query)
 
@@ -620,7 +655,7 @@ def rag_pipeline(query: str, history: list) -> dict:
     except Exception:
         # 4. Fallback
         reply = fallback_answer(query, context)
-        source_note = "rule-based fallback + live Wikipedia/ArXiv"
+        source_note = "PhysBot offline notes"
 
     # Identify cited sources
     topics = identify_topics(query)
