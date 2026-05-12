@@ -73,6 +73,16 @@ def gi(form, name, default, lo=None, hi=None):
 BZ_LATTICES = frozenset({'square', 'rectangular', 'hexagonal'})
 
 
+def _n(num):
+    """Fewer sample points on Render — speeds up the very heavy / page."""
+    n = int(num)
+    if os.environ.get('RENDER', '').lower() != 'true':
+        return n
+    if n <= 24:
+        return max(8, int(n * 0.85) or 8)
+    return max(24, min(384, int(n * 0.62)))
+
+
 def pplot(fig):
     return plot(fig, output_type='div', include_plotlyjs=False)
 
@@ -111,7 +121,9 @@ def sigma_calc(n, mu):
     return n * 1e6 * mu * 1e-4 * q
 
 
-def kp_dispersion(a, V0_J, b, N=600):
+def kp_dispersion(a, V0_J, b, N=None):
+    if N is None:
+        N = _n(600)
     E_arr  = np.linspace(1e-5 * eV, V0_J * 3.5, N)
     k_list = []
     E_list = []
@@ -139,7 +151,7 @@ def kp_dispersion(a, V0_J, b, N=600):
 # Plot functions
 
 def plt_fermi_dirac(Ef, T):
-    E   = np.linspace(Ef - 0.6, Ef + 0.6, 600)
+    E   = np.linspace(Ef - 0.6, Ef + 0.6, _n(600))
     fig = go.Figure(layout=make_layout('Fermi-Dirac Distribution'))
     for i, Ti in enumerate([100, 200, T, 500, 800]):
         fig.add_trace(go.Scatter(
@@ -154,7 +166,7 @@ def plt_fermi_dirac(Ef, T):
 
 def plt_dos(m_eff_ratio, Ec, Ev, T, Ef):
     m_eff = m_eff_ratio * m0
-    E     = np.linspace(Ev - 0.1, Ec + 1.0, 800)
+    E     = np.linspace(Ev - 0.1, Ec + 1.0, _n(800))
     dos_c = np.zeros_like(E)
     cb    = E > Ec
     if cb.any():
@@ -185,7 +197,7 @@ def plt_dos(m_eff_ratio, Ec, Ev, T, Ef):
 
 
 def plt_ni_vs_T(Nc, Nv, Eg):
-    T  = np.linspace(150, 900, 400)
+    T  = np.linspace(150, 900, _n(400))
     ni = np.array([ni_calc(Nc, Nv, Eg, Ti) for Ti in T])
     fig = go.Figure(layout=make_layout('ni vs Temperature'))
     fig.add_trace(go.Scatter(x=T, y=ni, mode='lines',
@@ -197,7 +209,7 @@ def plt_ni_vs_T(Nc, Nv, Eg):
 
 
 def plt_mobility_vs_T(Nd):
-    T    = np.linspace(80, 700, 400)
+    T    = np.linspace(80, 700, _n(400))
     mu   = np.array([mu_calc(Ti, Nd) for Ti in T])
     mu_L = 1350.0 * (T / 300.0) ** -2.3
     fig  = go.Figure(layout=make_layout('Mobility vs Temperature'))
@@ -211,7 +223,7 @@ def plt_mobility_vs_T(Nd):
 
 
 def plt_carrier_vs_T(Nc, Nv, Eg, Nd):
-    T    = np.linspace(150, 700, 400)
+    T    = np.linspace(150, 700, _n(400))
     Ec   = 0.0
     Ev   = -Eg
     n_a, p_a, ni_a = [], [], []
@@ -237,7 +249,7 @@ def plt_carrier_vs_T(Nc, Nv, Eg, Nd):
 
 
 def plt_conductivity_vs_T(Nc, Nv, Eg, Nd):
-    T    = np.linspace(150, 700, 400)
+    T    = np.linspace(150, 700, _n(400))
     vals = []
     for Ti in T:
         ni_v = ni_calc(Nc, Nv, Eg, Ti)
@@ -254,7 +266,7 @@ def plt_conductivity_vs_T(Nc, Nv, Eg, Nd):
 
 
 def plt_ef_vs_doping(Nc, Nv, Eg, T):
-    Nd_arr = np.logspace(13, 20, 300)
+    Nd_arr = np.logspace(13, 20, _n(300))
     Ec     = 0.0
     Ev     = -Eg
     Ef_arr = [ef_n(Ec, Nd, ni_calc(Nc, Nv, Eg, T), T) for Nd in Nd_arr]
@@ -293,7 +305,7 @@ def plt_band_diagram(Ef, Ec, Ev, Eg):
 
 
 def plt_resistivity_vs_doping():
-    Nd_arr = np.logspace(13, 20, 300)
+    Nd_arr = np.logspace(13, 20, _n(300))
     rho_n, rho_p = [], []
     for Nd in Nd_arr:
         mu_n  = mu_calc(300, Nd)
@@ -313,7 +325,7 @@ def plt_resistivity_vs_doping():
 
 
 def plt_bandgap_vs_T(Eg_300=1.12):
-    T     = np.linspace(1, 600, 400)
+    T     = np.linspace(1, 600, _n(400))
     alpha = 4.73e-4
     beta  = 636.0
     ref   = Eg_300 + alpha * 300**2 / (300 + beta)
@@ -342,10 +354,10 @@ def plt_kp_1d(a, V0_J, b):
 
 
 def plt_kp_2d(a, V0_J, b):
-    V0_range      = np.linspace(0.5*eV, V0_J * 2.5, 30)
+    V0_range      = np.linspace(0.5*eV, V0_J * 2.5, _n(30))
     all_k, all_E, all_V = [], [], []
     for V in V0_range:
-        k, E = kp_dispersion(a, V, b, N=200)
+        k, E = kp_dispersion(a, V, b, N=_n(200))
         if len(k):
             all_k.extend(k)
             all_E.extend(E)
@@ -366,7 +378,7 @@ def plt_kp_2d(a, V0_J, b):
 
 
 def plt_kp_3d(a, V0_J, b):
-    k_vals, E_vals = kp_dispersion(a, V0_J, b, N=200)
+    k_vals, E_vals = kp_dispersion(a, V0_J, b, N=_n(200))
     if len(k_vals) < 4:
         return ("<p style='color:#6a8aaa;padding:1rem;"
                 "font-family:monospace;font-size:0.75rem'>"
@@ -416,7 +428,7 @@ def plt_hall(Nc, Nv, Eg, Nd):
     T   = 300
     ni  = ni_calc(Nc, Nv, Eg, T)
     n   = max(Nd, ni)
-    B   = np.linspace(0, 3, 300)
+    B   = np.linspace(0, 3, _n(300))
     R_H = 1.0 / (n * q * 1e6)
     V_H = R_H * 1e3 * B
     fig = go.Figure(layout=make_layout('Hall Voltage vs Magnetic Field'))
@@ -429,7 +441,7 @@ def plt_hall(Nc, Nv, Eg, Nd):
 
 
 def plt_iv_diode(T, Eg):
-    V   = np.linspace(-0.5, 0.8, 500)
+    V   = np.linspace(-0.5, 0.8, _n(500))
     ni  = ni_calc(2e19, 1e19, Eg, T)
     I0  = q * ni * 1e-4
     I   = I0 * (np.exp(np.clip(q*V/(k_B*max(T,1)), -500, 500)) - 1)
@@ -446,7 +458,7 @@ def plt_schottky(Eg=1.12):
     phi_m = 4.5
     chi   = 4.05
     phi_B = phi_m - chi
-    x     = np.linspace(0, 5, 400)
+    x     = np.linspace(0, 5, _n(400))
     Ec    = -phi_B * np.exp(-x / 1.5)
     Ev    = Ec - Eg
     fig   = go.Figure(layout=make_layout('Schottky Barrier Band Diagram'))
@@ -464,7 +476,7 @@ def plt_schottky(Eg=1.12):
 
 
 def plt_phonon():
-    q_arr   = np.linspace(-np.pi, np.pi, 400)
+    q_arr   = np.linspace(-np.pi, np.pi, _n(400))
     m1, m2, C = 1.0, 2.0, 1.0
     sq_a    = (C*(m1+m2)/(m1*m2)
                - C/(m1*m2)*np.sqrt((m1+m2)**2
@@ -486,7 +498,7 @@ def plt_phonon():
 def plt_depletion(Nc, Nd, Eg):
     eps_r = 11.7
     eps   = eps_r * 8.854e-12
-    Vbi   = np.linspace(0.1, 1.5, 300)
+    Vbi   = np.linspace(0.1, 1.5, _n(300))
     Na_m  = max(Nc * 1e3, 1e16) * 1e6
     Nd_m  = max(Nd,        1e13) * 1e6
     W     = np.sqrt(2 * eps * Vbi * (Na_m + Nd_m) / (q * Na_m * Nd_m))

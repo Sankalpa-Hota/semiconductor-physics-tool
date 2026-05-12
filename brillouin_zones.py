@@ -1,6 +1,7 @@
 """
 brillouin_zones.py
 """
+import os
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import plot
@@ -61,7 +62,9 @@ def generate_reciprocal_points(b1, b2, N=6):
     return np.array(pts)
 
 
-def compute_zone_map(b1, b2, n_zones, grid_n=350):
+def compute_zone_map(b1, b2, n_zones, grid_n=None):
+    if grid_n is None:
+        grid_n = 240 if os.environ.get('RENDER', '').lower() == 'true' else 350
     b_max  = np.linalg.norm(b1) * (n_zones + 2.5)
     kx_arr = np.linspace(-b_max, b_max, grid_n)
     ky_arr = np.linspace(-b_max, b_max, grid_n)
