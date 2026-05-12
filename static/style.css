@@ -1,146 +1,305 @@
-/* Background & Layout */
+/* ============================================================
+   SEMICONDUCTOR PHYSICS TOOL — Dark Mode Circuit Lab UI
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg-0:       #050810;
+  --bg-1:       #0a0f1a;
+  --bg-2:       #0f1624;
+  --bg-3:       #16202e;
+  --border:     #1a2840;
+  --cyan:       #00f0ff;
+  --green:      #00ff9d;
+  --amber:      #ffb800;
+  --pink:       #ff3e8a;
+  --purple:     #9b5de5;
+  --text-1:     #d8eaff;
+  --text-2:     #6a8aaa;
+  --text-3:     #2e4460;
+  --font-mono:  'Space Mono', monospace;
+  --font-body:  'DM Sans', sans-serif;
+  --r:          8px;
+  --glow-c:     0 0 14px #00f0ff55, 0 0 28px #00f0ff22;
+  --glow-g:     0 0 14px #00ff9d55;
+  --card-shad:  0 4px 40px rgba(0,0,0,0.75);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
 body {
-    margin: 0;
-    font-family: 'Segoe UI', 'Orbitron', sans-serif;
-    background: url("images/bg.jpg") no-repeat center center fixed;
-    background-size: cover;
-    color: #fff;
-    min-height: 100vh;
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  min-height: 100vh;
 }
 
-.container {
-    width: 85%;
-    max-width: 1000px;
-    margin: 30px auto;
-    padding: 25px;
-    background: rgba(0,0,0,0.7);
-    border-radius: 20px;
-    box-shadow: 0 0 25px #00ffe0;
+/* ── HEADER ─────────────────────────────────────────── */
+.site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(5,8,16,0.94);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.site-header .logo {
+  font-family: var(--font-mono);
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--cyan); letter-spacing: 0.1em;
+  text-shadow: var(--glow-c);
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cyan); box-shadow: var(--glow-c);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.7); }
+}
+.header-badges { display: flex; gap: 0.5rem; }
+.badge {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  padding: 3px 10px; border-radius: 20px; letter-spacing: 0.1em;
+}
+.badge-cyan  { border: 1px solid var(--cyan);   color: var(--cyan);   background: #00f0ff0d; }
+.badge-green { border: 1px solid var(--green);  color: var(--green);  background: #00ff9d0d; }
+
+/* ── CIRCUIT HERO ─────────────────────────────────── */
+.circuit-hero {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+}
+#circuit-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 80% at 50% 50%, transparent 40%, rgba(5,8,16,0.7) 100%);
+}
+.hero-title {
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 700; letter-spacing: 0.2em;
+  color: var(--cyan); text-shadow: var(--glow-c);
+  text-transform: uppercase; text-align: center;
+}
+.hero-sub {
+  font-family: var(--font-mono);
+  font-size: 0.65rem; letter-spacing: 0.15em;
+  color: var(--text-2); margin-top: 0.4rem;
+  text-align: center;
+}
+.hero-stats {
+  display: flex; gap: 2rem; margin-top: 1.2rem;
+  pointer-events: none;
+}
+.hero-stat {
+  text-align: center;
+}
+.hero-stat .sv {
+  font-family: var(--font-mono); font-size: 1.1rem;
+  color: var(--green); text-shadow: var(--glow-g);
+}
+.hero-stat .sl {
+  font-family: var(--font-mono); font-size: 0.55rem;
+  color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase;
 }
 
-/* Headings */
-h1 {
-    color: #ffcc00;
-    text-shadow: 2px 2px 10px #000;
-    text-align: center;
+/* ── LAYOUT ──────────────────────────────────────── */
+.app-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 56px - 260px);
 }
 
-h2 {
-    color: #ffd700;
-    border-bottom: 1px solid rgba(255,255,255,0.3);
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-    text-align: center;
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sidebar {
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  padding: 1.4rem 1.1rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 316px);
+  position: sticky; top: 316px;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.param-section { margin-bottom: 1.8rem; }
+.param-section-title {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  font-weight: 700; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--cyan);
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.1rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.param-section-title::before {
+  content: '';
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cyan); box-shadow: var(--glow-c);
+  display: inline-block;
 }
 
-/* Formula hint */
-.formula-hint {
-    font-style: italic;
-    color: #bbb;
-    text-align: center;
-    margin-bottom: 15px;
+.param-row { margin-bottom: 1rem; }
+.param-label {
+  display: flex; justify-content: space-between;
+  align-items: baseline; margin-bottom: 0.3rem;
+}
+.param-label .pname {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--text-2);
+}
+.param-value-badge {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--amber); background: #ffb80010;
+  padding: 1px 7px; border-radius: 4px;
+  border: 1px solid #ffb80028;
+  min-width: 82px; text-align: right;
+  transition: color 0.2s;
 }
 
-/* Input forms */
-.input-form {
-    background: rgba(0,0,0,0.65);
-    border-radius: 15px;
-    padding: 20px;
-    margin: 30px auto;
-    width: 80%;
-    box-shadow: 0 0 10px #009999;
+/* Range */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%; height: 3px;
+  background: linear-gradient(to right, var(--cyan) var(--pct,50%), var(--bg-3) var(--pct,50%));
+  border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  background: var(--bg-0); border: 2px solid var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--cyan), 0 0 12px #00f0ff44;
+  cursor: pointer; transition: transform 0.12s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.4); }
+.range-bounds {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 0.58rem;
+  color: var(--text-3); margin-top: 3px;
 }
 
-.input-row {
-    display: flex;
-    justify-content: space-between;
-    margin: 12px 0;
+.btn-compute {
+  width: 100%; padding: 0.75rem;
+  background: linear-gradient(135deg, #00f0ff14, #9b5de514);
+  border: 1px solid var(--cyan); border-radius: var(--r);
+  color: var(--cyan); font-family: var(--font-mono);
+  font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.22s;
+  box-shadow: var(--glow-c);
+}
+.btn-compute:hover {
+  background: linear-gradient(135deg, #00f0ff28, #9b5de528);
+  box-shadow: 0 0 28px #00f0ff66; transform: translateY(-1px);
+}
+.btn-compute:active { transform: translateY(0); }
+
+/* ── MAIN CONTENT ────────────────────────────────── */
+.main-content { padding: 1.5rem 1.75rem; overflow-x: hidden; }
+
+/* Results Bar */
+.results-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: var(--r);
+  overflow: hidden; margin-bottom: 2rem;
+  box-shadow: var(--card-shad);
+}
+.result-cell {
+  background: var(--bg-2); padding: 0.9rem 1.1rem;
+  transition: background 0.2s;
+}
+.result-cell:hover { background: var(--bg-3); }
+.result-cell .rl  { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 3px; }
+.result-cell .rv  { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; color: var(--green); text-shadow: var(--glow-g); }
+.result-cell .ru  { font-family: var(--font-mono); font-size: 0.57rem; color: var(--text-3); margin-top: 1px; }
+
+/* Section header */
+.section-header {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--purple); margin: 2.25rem 0 1rem;
+  display: flex; align-items: center; gap: 0.7rem;
+}
+.section-header::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(to right, var(--border), transparent);
 }
 
-.input-row label {
-    flex: 1;
-    text-align: right;
-    margin-right: 15px;
+/* Plot grid */
+.plot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.1rem; margin-bottom: 1.2rem;
 }
+.plot-grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 
-.input-row input {
-    flex: 1;
-    padding: 8px;
-    border: none;
-    border-radius: 8px;
-    text-align: center;
+.plot-card {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+  box-shadow: var(--card-shad);
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
+.plot-card:hover {
+  border-color: #00f0ff2a;
+  box-shadow: var(--card-shad), 0 0 0 1px #00f0ff0d;
+}
+.plot-card-title {
+  padding: 0.65rem 1rem; background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 0.6rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-2); display: flex; align-items: center; gap: 0.5rem;
+}
+.pct-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); box-shadow: var(--glow-c); flex-shrink: 0; }
+.plot-card-full { grid-column: 1 / -1; }
 
-/* Button */
-.submit-btn {
-    display: block;
-    margin: 30px auto;
-    background: #ffb703;
-    color: #000;
-    font-weight: bold;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.3s;
+/* Equation strip */
+.eq-strip {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-left: 3px solid var(--cyan); border-radius: var(--r);
+  padding: 0.65rem 1.1rem; margin-bottom: 1.5rem;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--text-2); letter-spacing: 0.03em;
+  display: flex; flex-wrap: wrap; gap: 1.5rem;
 }
+.eq-strip .eq { color: var(--amber); }
 
-.submit-btn:hover {
-    background: #ffd166;
-    transform: scale(1.05);
+/* Footer */
+.site-footer {
+  text-align: center; padding: 1.5rem;
+  font-family: var(--font-mono); font-size: 0.6rem;
+  color: var(--text-3); border-top: 1px solid var(--border);
+  letter-spacing: 0.08em;
 }
+.site-footer a { color: var(--cyan); text-decoration: none; }
 
-/* Results */
-.results {
-    background: rgba(0,0,0,0.6);
-    padding: 25px;
-    border-radius: 15px;
-    margin-top: 30px;
-}
-
-.result-card {
-    background: rgba(255,255,255,0.1);
-    border-left: 5px solid #ffcc00;
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-}
-
-/* Plots */
-.plot-section {
-    margin-top: 30px;
-}
-.plot-section h3 {
-    text-align: center;
-    color: #ffcc00;
-    margin-bottom: 10px;
-}
-
-/* Contact link */
-.contact-link {
-    display: block;
-    width: fit-content;
-    margin: 40px auto;
-    background: #ffcc00;
-    color: #000;
-    padding: 10px 25px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-}
-.contact-link:hover {
-    background: #ffd166;
-}
+/* Plotly dark overrides */
+.js-plotly-plot .plotly .modebar { background: transparent !important; }
+.js-plotly-plot .plotly .modebar-btn path { fill: var(--text-3) !important; }
 
 /* Responsive */
-@media (max-width: 700px) {
-    .input-row {
-        flex-direction: column;
-        align-items: center;
-    }
-    .input-row label {
-        text-align: center;
-        margin: 5px 0;
-    }
+@media (max-width: 860px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; max-height: none; top: 0; border-right: none; border-bottom: 1px solid var(--border); }
+  .plot-grid { grid-template-columns: 1fr; }
+  .hero-stats { gap: 1rem; }
 }
