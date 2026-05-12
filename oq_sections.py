@@ -89,7 +89,7 @@ SECTIONS_ORDER = [
     {
         'id': 'bz',
         'title': 'Brillouin zones',
-        'subtitle': '2D extended zones in reciprocal space',
+        'subtitle': 'Wigner–Seitz zones in k-space — choose zone index 1 … 10',
         'sidebar': frozenset({'p_bz'}),
         'plots': ('bz_plot',),
         'wiki_title': 'Brillouin zone',

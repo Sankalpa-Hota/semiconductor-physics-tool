@@ -156,6 +156,51 @@ def fetch_wikipedia(api_url: str) -> str:
         return ""
 
 
+def wikipedia_search_extracts(user_query: str, max_titles: int = 3) -> tuple[str, list[str]]:
+    """
+    Full-text search on English Wikipedia, then pull plaintext extracts for top hits.
+    Returns (combined extract text, list of article titles used).
+    """
+    q = user_query.strip()
+    if len(q) < 2:
+        return "", []
+    enc = urllib.parse.quote(q[:280])
+    search_url = (
+        "https://en.wikipedia.org/w/api.php?action=query&list=search"
+        f"&srsearch={enc}&srlimit={max(5, max_titles + 2)}&format=json"
+    )
+    raw = http_get(search_url, timeout=14)
+    if not raw:
+        return "", []
+    try:
+        data = json.loads(raw)
+        hits = data.get("query", {}).get("search", [])
+    except Exception:
+        return "", []
+    titles: list[str] = []
+    seen = set()
+    for h in hits:
+        t = (h.get("title") or "").strip()
+        if not t or t in seen:
+            continue
+        seen.add(t)
+        titles.append(t)
+        if len(titles) >= max_titles:
+            break
+    if not titles:
+        return "", []
+    tparam = "|".join(urllib.parse.quote(t.replace("|", " "), safe="") for t in titles)
+    ext_url = (
+        "https://en.wikipedia.org/w/api.php?action=query&titles=" + tparam
+        + "&prop=extracts&explaintext=true&exintro=false&format=json&exchars=12000"
+    )
+    blob = fetch_wikipedia(ext_url)
+    head = " | ".join(titles)
+    if not blob:
+        return "", titles
+    return f"(Articles: {head})\n\n{blob}", titles
+
+
 def fetch_arxiv(query: str, max_results=3) -> str:
     """Fetch abstracts from ArXiv search API."""
     encoded = urllib.parse.quote(query)
@@ -269,51 +314,68 @@ def rank_chunks(query: str, chunks: list) -> list:
     scored = [(tfidf_score(q_tokens, c, len(chunks), doc_freq), c)
               for c in chunks]
     scored.sort(key=lambda x: -x[0])
-    return [c for _, c in scored[:MAX_CHUNKS] if _ > 0]
+    best = [c for _, c in scored[:MAX_CHUNKS] if _ > 0]
+    if best:
+        return best
+    # Novel / rare names share no tokens with the corpus — still return the strongest chunks
+    return [c for _, c in scored[:MAX_CHUNKS]]
 
 
 # ══════════════════════════════════════════════════════════════
 #  RETRIEVAL PIPELINE
 # ══════════════════════════════════════════════════════════════
 
-def retrieve(query: str) -> str:
-    """
-    Full retrieval pipeline:
-    1. Identify relevant topics from query
-    2. Fetch Wikipedia articles for those topics (cached)
-    3. Fetch ArXiv abstracts for research flavor
-    4. Chunk all text
-    5. TF-IDF rank and return top chunks
-    """
-    topics = identify_topics(query)
-    all_text_parts = []
+def user_arxiv_query(query: str) -> str:
+    """Build ArXiv `all:` search string from the user's question."""
+    toks = tokenize(query)
+    toks = [t for t in toks if len(t) > 2][:12]
+    if toks:
+        return "+".join(toks)
+    return "condensed+matter+physics"
 
-    # Wikipedia
+
+def retrieve(query: str) -> dict:
+    """
+    Retrieval pipeline:
+    1. Wikipedia full-text search → top article extracts (general questions, names, …)
+    2. Topic-keyed Wikipedia pages when keywords match OPEN-Quantum catalogue
+    3. ArXiv abstracts from tokens in the user's words
+    4. Chunk, TF-IDF rank → context text plus metadata for source badges
+    """
+    meta: dict = {"wiki_search_titles": [], "topics": []}
+    all_text_parts: list[str] = []
+
+    wiki_blob, titles = wikipedia_search_extracts(query, max_titles=3)
+    meta["wiki_search_titles"] = titles
+    if wiki_blob:
+        all_text_parts.append(f"[Wikipedia search]\n{wiki_blob}")
+
+    topics = identify_topics(query)
+    meta["topics"] = topics
+
     for topic in topics:
         urls = TOPIC_SOURCES.get(topic, [])
-        for url in urls[:2]:  # max 2 Wikipedia pages per topic
+        for url in urls[:2]:
             text = fetch_wikipedia(url)
             if text:
                 all_text_parts.append(f"[Wikipedia/{topic}]\n{text}")
 
-    # ArXiv — pick most relevant topic for research context
-    primary = topics[0] if topics else "semiconductor"
-    arxiv_q = ARXIV_TOPICS.get(primary, f"semiconductor+{primary}")
-    arxiv_text = fetch_arxiv(arxiv_q, max_results=2)
+    arxiv_text = fetch_arxiv(user_arxiv_query(query), max_results=3)
     if arxiv_text:
-        all_text_parts.append(f"[ArXiv Recent Research]\n{arxiv_text}")
+        all_text_parts.append(f"[ArXiv]\n{arxiv_text}")
 
     if not all_text_parts:
-        return ""
+        return {"text": "", "meta": meta}
 
-    # Chunk
-    all_chunks = []
+    all_chunks: list = []
     for part in all_text_parts:
         all_chunks.extend(chunk_text(part))
 
-    # Rank
     top_chunks = rank_chunks(query, all_chunks)
-    return "\n\n---\n\n".join(top_chunks)
+    return {
+        "text": "\n\n---\n\n".join(top_chunks),
+        "meta": meta,
+    }
 
 
 # ══════════════════════════════════════════════════════════════
@@ -321,18 +383,19 @@ def retrieve(query: str) -> str:
 # ══════════════════════════════════════════════════════════════
 
 STATIC_PREAMBLE = """You are PhysBot, the expert AI assistant built into OPEN-Quantum,
-an interactive semiconductor physics simulation. You have access to live-retrieved knowledge
-from Wikipedia and ArXiv papers.
+an interactive semiconductor and solid-state physics simulation. You have live-retrieved
+excerpts from Wikipedia and ArXiv.
 
 Your role:
-- Answer questions about semiconductor physics precisely and clearly
-- Use Unicode equations: ħ, μ, σ, ε, Γ, π, √, ²
-- Reference the retrieved context below; synthesize don't just copy
+- Answer questions in condensed-matter / semiconductor physics, and related quantum topics,
+  using the retrieved context; synthesize clearly instead of copying verbatim
+- Use Unicode equations where helpful: ħ, μ, σ, ε, Γ, π, √, ²
+- Reference the retrieved context below; add standard-book knowledge only when it is uncontroversial
 - For numerical questions: state the formula, define variables, compute
-- Connect theory to the simulation plots visible in the tool
+- Connect to the simulation when relevant (bands, carriers, devices)
 - Cite [Wikipedia] or [ArXiv] when using retrieved content
-- Keep answers focused: 2-5 paragraphs, equations on their own lines
-- If asked about a material, include typical parameter values
+- Keep answers focused: about 2–5 short paragraphs unless the user asks for depth
+- If asked about a material, typical parameter orders of magnitude are welcome
 """
 
 
@@ -373,7 +436,7 @@ def query_ollama(messages: list) -> str:
         headers={"Content-Type": "application/json"},
         method="POST"
     )
-    with urllib.request.urlopen(req, timeout=45) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:
         data = json.loads(resp.read().decode('utf-8'))
         return data["message"]["content"]
 
@@ -575,34 +638,130 @@ n = ∫[Ec to ∞] g(E)·f(E) dE ≈ Nc·exp(−(Ec−Ef)/kT)  (non-degenerate a
 
 Joint DoS governs optical absorption and emission rates.
 """,
+
+    r"(born.{0,16}(oppen|opeen))|oppenheimer|adiabatic.approx": """
+**Born–Oppenheimer approximation** [Wikipedia/Born–Oppenheimer approximation]
+
+Electrons are much lighter than nuclei, so they move faster. One separates the full
+molecular (or crystal) wavefunction into an **electronic part** at fixed nuclear
+positions and a **nuclear part** that sees electrons in their ground (or specified) state.
+
+Formally: solve the electronic Schrödinger equation for each fixed nuclear configuration
+to get energies *E*({**R**}) that act as a potential for nuclear motion (phonons, molecular
+vibrations, or ion dynamics). Valid when the electronic gap is large compared to the
+energy scale of nuclear motion — breaks down near **conical intersections** or strong
+non-adiabatic coupling.
+
+In **solid-state band theory**, the same idea justifies treating the periodic ion cores
+as providing a fixed potential (with occasional extensions beyond BO for electron–phonon
+coupling and superconductivity).
+""",
 }
 
 
-def fallback_answer(query: str, context: str) -> str:
-    """Pattern-match fallback with formula-rich responses (no raw Wikipedia dumps)."""
+def extractive_summary_from_context(query: str, context: str) -> str:
+    """
+    Produce a short readable summary from ranked chunks when no local LLM is available.
+    Prefers sentences that overlap the user's wording, then fills with earlier material.
+    """
+    if not context.strip():
+        return ""
+    t = context.replace("\n---\n", " ").replace("\r", " ")
+    t = re.sub(r"\[Wikipedia[^\]]*\]|\[ArXiv[^\]]*\]", " ", t)
+    t = re.sub(r"\(Articles:[^)]{0,400}\)", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) < 90:
+        return ""
+
+    parts = re.split(r"(?<=[.!?])\s+", t)
+    parts = [p.strip() for p in parts if len(p.strip()) > 22]
+    if not parts:
+        cut = min(2800, len(t))
+        return t[:cut].rsplit(" ", 1)[0] + "…"
+
+    qset = set(tokenize(query))
+    ranked: list[tuple[int, int, str]] = []
+    for i, p in enumerate(parts):
+        overlap = len(qset & set(tokenize(p))) if qset else 0
+        ranked.append((overlap, -i, p))
+    ranked.sort(key=lambda x: (-x[0], x[1]))
+
+    chosen: list[str] = []
+    seen: set[str] = set()
+    char_budget = 0
+    max_chars = 3200
+    max_sents = 14
+
+    for _, __, p in ranked:
+        if p in seen:
+            continue
+        if char_budget + len(p) > max_chars:
+            break
+        chosen.append(p)
+        seen.add(p)
+        char_budget += len(p)
+        if len(chosen) >= max(4, max_sents // 2):
+            break
+
+    if len(chosen) < max_sents:
+        for p in parts:
+            if p in seen:
+                continue
+            if char_budget + len(p) > max_chars:
+                break
+            chosen.append(p)
+            seen.add(p)
+            char_budget += len(p)
+            if len(chosen) >= max_sents:
+                break
+
+    out = " ".join(chosen).strip()
+    if len(out) < 100:
+        cut = min(max_chars, len(t))
+        return t[:cut].rsplit(" ", 1)[0] + "…"
+    return out
+
+
+def fallback_answer(query: str, context: str, meta: dict | None = None) -> str:
+    """Pattern-match fallback, else a condensed summary from retrieved sources."""
     q = query.lower()
+    meta = meta or {}
     for pattern, answer in FALLBACK_DB.items():
         if re.search(pattern, q):
             return answer.strip()
 
-    # No unknown-topic dump: retrieved text is only for the LLM prompt, not end users.
-    if context:
-        return (
-            "I don’t have a dedicated offline note that matches that question yet.\n\n"
-            "Try asking with a concrete keyword — for example **mean free path**, **scattering**, "
-            "**mobility**, **Fermi level**, **p–n junction**, **MOSFET**, **Brillouin zone**, "
-            "**phonon**, or **density of states** — or tap one of the suggestion chips."
-        )
+    if context.strip():
+        summary = extractive_summary_from_context(query, context)
+        if not summary:
+            flat = re.sub(r"\s+", " ", context).strip()
+            if len(flat) > 320:
+                summary = flat[:1600].rsplit(" ", 1)[0] + "…"
+        if summary:
+            lines: list[str] = [
+                "**Summary** — condensed from live Wikipedia + ArXiv snippets (verify anything exam-critical).",
+                "",
+                summary,
+            ]
+            wt = meta.get("wiki_search_titles") or []
+            if wt:
+                lines.append("")
+                lines.append(
+                    "**Wikipedia articles used:** "
+                    + ", ".join(wt[:5])
+                    + ("…" if len(wt) > 5 else "")
+                )
+            lines.append("")
+            lines.append(
+                "_This pass used on-device retrieval and extractive summarization "
+                "(not a full generative rewrite); enable a local assistant for a single polished answer._"
+            )
+            return "\n".join(lines)
 
     return (
-        "I'm **PhysBot**, the assistant for **OPEN-Quantum**.\n\n"
-        "Offline, I answer from built-in notes on:\n"
-        "• Fermi–Dirac statistics and carrier concentrations\n"
-        "• Band theory, Kronig–Penney, Brillouin zones\n"
-        "• Transport: Drude model, mobility, scattering, mean free path, Hall effect\n"
-        "• Doping, p–n junctions, MOSFETs, CMOS\n"
-        "• Phonons, density of states, and common material parameters (Si, GaAs, …)\n\n"
-        "Ask a specific topic using one of those keywords for a formula-level answer."
+        "I couldn’t retrieve enough text to summarize that just now (network or query). "
+        "Try again in a moment, or rephrase with a few concrete keywords.\n\n"
+        "Built-in shortcuts still work for: **Fermi–Dirac**, **mobility**, **Brillouin zone**, "
+        "**p–n junction**, **MOSFET**, **phonon**, **density of states**, **Born–Oppenheimer**, and more."
     )
 
 
@@ -643,30 +802,43 @@ def rag_pipeline(query: str, history: list) -> dict:
         }
 
     # 1. Retrieve
-    context = retrieve(query)
+    pack = retrieve(query)
+    context = pack["text"]
+    meta = pack.get("meta") or {}
 
     # 2. Build prompt
     messages = build_prompt(query, context, history)
 
-    # 3. Try Ollama
+    # 3. Try Ollama (longer timeout server-side for synthesis)
     try:
         reply = query_ollama(messages)
         source_note = "llama3 via Ollama + live Wikipedia/ArXiv"
     except Exception:
-        # 4. Fallback
-        reply = fallback_answer(query, context)
-        source_note = "PhysBot offline notes"
+        reply = fallback_answer(query, context, meta)
+        if meta.get("wiki_search_titles") or (context.strip() and len(context.split()) > 40):
+            source_note = "PhysBot · live retrieval + extractive summary"
+        else:
+            source_note = "PhysBot offline notes"
 
-    # Identify cited sources
-    topics = identify_topics(query)
-    sources = [f"Wikipedia/{t}" for t in topics[:3]]
-    if "arxiv" in context.lower() or "arxiv" in reply.lower():
-        sources.append("ArXiv.org")
+    sources: list[str] = []
+    seen_src: set[str] = set()
+
+    def _add_src(label: str):
+        if label and label not in seen_src:
+            seen_src.add(label)
+            sources.append(label)
+
+    if meta.get("wiki_search_titles"):
+        _add_src("Wikipedia (search)")
+    for t in (meta.get("topics") or identify_topics(query))[:3]:
+        _add_src(f"Wikipedia/{t}")
+    if context.lower().find("arxiv") >= 0:
+        _add_src("ArXiv.org")
 
     return {
-        "reply":   reply,
+        "reply": reply,
         "sources": sources,
-        "engine":  source_note,
+        "engine": source_note,
         "context_words": len(context.split()) if context else 0,
     }
 

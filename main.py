@@ -151,7 +151,7 @@ PLOT_TITLES = {
     'kp1d': 'Kronig–Penney E(k)',
     'kp2d': 'KP vs barrier height',
     'kp3d': 'KP 3D surface',
-    'bz_plot': 'Brillouin zones (2D)',
+    'bz_plot': 'Brillouin zones (zone index 1–10)',
     'phonon': 'Phonon dispersion',
     'recip': 'Real vs reciprocal lattice (3D)',
 }

@@ -585,18 +585,38 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.4); }
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--text-2); display: flex; align-items: center; gap: 0.5rem;
 }
-.plot-card-head {
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+/* Two-column header: title wraps in first column; Render/Close stays visible (all sections). */
+.plot-card-title.plot-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 1rem;
+  row-gap: 0.5rem;
 }
 .plot-card-heading-text {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: 1 1 10rem;
   min-width: 0;
   line-height: 1.35;
+}
+.plot-card-heading-text--bz {
+  align-items: flex-start;
+}
+.bz-heading-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.bz-status-line {
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+  color: var(--text-3);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
 }
 .bz-title-row {
   display: flex;
@@ -608,6 +628,9 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.4); }
 }
 .plot-toggle-btn {
   flex-shrink: 0;
+  justify-self: end;
+  align-self: center;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 0.55rem;
   letter-spacing: 0.08em;

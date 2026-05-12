@@ -300,6 +300,7 @@
     "What is CMOS?",
     "Phonon dispersion",
     "Density of states",
+    "What is the Born–Oppenheimer approximation?",
   ];
 
   // ── Build DOM ──────────────────────────────────────────────
@@ -545,7 +546,8 @@
   function sendMessage(text) {
     if (!text || isLoading) return;
     isLoading = true;
-    document.getElementById('pb-status-text').textContent = 'Retrieving...';
+    const statusEl = document.getElementById('pb-status-text');
+    statusEl.textContent = 'Connecting…';
     document.getElementById('src-wiki').classList.remove('active');
     document.getElementById('src-arxiv').classList.remove('active');
     document.getElementById('src-ollama').classList.remove('active');
@@ -554,10 +556,25 @@
     history.push({ role: 'user', content: text });
     addTypingIndicator();
 
+    const thinkingTimers = [];
+    thinkingTimers.push(setTimeout(() => {
+      statusEl.textContent = 'Searching Wikipedia…';
+    }, 300));
+    thinkingTimers.push(setTimeout(() => {
+      statusEl.textContent = 'Pulling ArXiv abstracts…';
+    }, 1400));
+    thinkingTimers.push(setTimeout(() => {
+      statusEl.textContent = 'Synthesizing answer (local LLM can take up to ~2 min)…';
+    }, 3200));
+
+    const ac = new AbortController();
+    const hardStop = setTimeout(() => ac.abort(), 130000);
+
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: history.slice(-10) })
+      body: JSON.stringify({ message: text, history: history.slice(-10) }),
+      signal: ac.signal
     })
     .then(r => r.json())
     .then(data => {
@@ -583,14 +600,23 @@
       if (ctxWords > 0) {
         document.getElementById('pb-ctx-info').textContent = `${ctxWords} words retrieved`;
       }
-      document.getElementById('pb-status-text').textContent = 'Live RAG · Wikipedia + ArXiv';
+      statusEl.textContent = /extractive summary/i.test(engine)
+        ? 'Answer ready · live retrieval + summary'
+        : 'Live RAG · Wikipedia + ArXiv';
     })
     .catch(err => {
       removeTypingIndicator();
-      addBotMessage(`Connection error: ${err.message}. Is the Flask server running?`, [], 0);
-      document.getElementById('pb-status-text').textContent = 'Error — check server';
+      const msg = err.name === 'AbortError'
+        ? 'Timed out waiting for an answer (try again or shorten the question).'
+        : `Connection error: ${err.message}. Is the Flask server running?`;
+      addBotMessage(msg, [], 0);
+      statusEl.textContent = 'Error — check server';
     })
-    .finally(() => { isLoading = false; });
+    .finally(() => {
+      clearTimeout(hardStop);
+      thinkingTimers.forEach(clearTimeout);
+      isLoading = false;
+    });
   }
 
   // ── Init ──────────────────────────────────────────────────

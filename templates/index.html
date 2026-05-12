@@ -72,18 +72,7 @@
           onsubmit="return oqPrepSubmit();">
       <input type="hidden" name="active_section" id="active-section-field" value="{{ active_section }}">
 
-      {% if not active_section %}
-      <div class="oq-guided-hero">
-        <strong style="color:var(--cyan);">What do you want OQ to help you with?</strong><br>
-        Choose a workspace below. You will get a short theory note (plus a live Wikipedia extract when online),
-        only the sliders that matter for that topic, and checkboxes so <em>only the plots you pick</em> are generated (saves RAM on small hosts).
-        <div class="oq-section-grid">
-          {% for sec in oq_sections %}
-          <a class="oq-section-link" href="{{ url_for('home', section=sec.id) }}">{{ sec.title }} — open</a>
-          {% endfor %}
-        </div>
-      </div>
-      {% else %}
+      {% if active_section %}
       <p class="sidebar-intro">
         <strong style="color:var(--cyan);">{{ section_meta.title if section_meta else '' }}</strong><br>
         <span style="color:var(--text-2);font-size:0.68rem;">{{ section_meta.subtitle if section_meta else '' }}</span><br>
@@ -101,6 +90,8 @@
         {% if active_section == 'lattice' %}<a href="#section-plots-lattice">Lattice</a>{% endif %}
       </nav>
       {% endif %}
+
+      <!-- Topic picker lives in main only until a workspace is selected; then intro + quicknav appear here. -->
 
       <!-- 1 · Quantum statistics (same plots: Fermi–Dirac, DoS, QW) -->
       <details class="sidebar-panel sidebar-panel--stats {% if 'p_stats' not in sidebar_tags %}oq-sidebar-hidden{% endif %}" open>
@@ -342,8 +333,9 @@
         </summary>
         <div class="sidebar-panel-body">
           <p class="sidebar-blurb">
-            Zone geometry is controlled in the main column (lattice type, <em>a</em>, <em>b</em>, angle, zone count).
-            Use <strong>Render Zones</strong> to refresh the map after changes.
+            Zone geometry is set in the main column (lattice type, <em>a</em>, <em>b</em>, angle,
+            and <strong>max zone index</strong> <em>n</em> = 1…10). Use <strong>⟳ Render Zones</strong> or
+            <strong>Render this</strong> on the plot card after changes.
           </p>
         </div>
       </details>
@@ -424,7 +416,7 @@
     <div class="oq-main-landing">
       <h2>What do you want OQ to help you with?</h2>
       <p style="color:var(--text-2);font-size:0.88rem;margin-top:0.5rem;">
-        Select a workspace in the sidebar, or use the links below. Each mode loads curated theory, Wikipedia context when online, and only the plots you choose.
+        Pick a workspace below. After you open one, the left panel shows that topic’s parameters, theory notes, and plot choices — with only the sliders and figures relevant to that mode.
       </p>
       <div class="oq-section-grid" style="max-width:440px;margin:1.25rem auto 0;text-align:left;">
         {% for sec in oq_sections %}
@@ -802,19 +794,24 @@
         <div class="range-bounds"><span>60°</span><span>150°</span></div>
       </div>
 
-      <!-- Number of zones -->
+      <!-- Highest Brillouin zone index n (not “2D”: extent in k-space) -->
       <div>
         <div class="param-label" style="margin-bottom:0.35rem;">
-          <span class="pname">Zones to show</span>
+          <span class="pname">Max zone index <em>n</em> (1 … 10)</span>
           <input type="number" class="param-num-input" id="bz-zones-num"
                  value="4" min="1" max="10" step="1"
+                 title="1st through 10th Brillouin zone"
                  onchange="syncBZ('zones', parseInt(this.value))">
+        </div>
+        <div style="font-size:0.58rem;color:var(--text-3);line-height:1.35;margin:-2px 0 6px;">
+          Include zones <strong>1</strong> up through this index (extended-zone numbering in reciprocal space).
         </div>
         <input type="range" id="bz-zones-range"
                min="1" max="10" step="1" value="4"
                oninput="syncBZ('zones', parseInt(this.value))"
-               style="width:100%;">
-        <div class="range-bounds"><span>1<sup>st</sup></span><span>10<sup>th</sup></span></div>
+               style="width:100%;"
+               aria-label="Maximum Brillouin zone index from 1 to 10">
+        <div class="range-bounds"><span>1</span><span>10</span></div>
         <!-- Zone color legend -->
         <div id="bz-legend"
              style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
@@ -822,11 +819,11 @@
         <div id="bz-layer-row" style="margin-top:12px;max-width:520px;">
           <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--text-2);
                       letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
-            Which zones to draw
+            Which zone indices to draw
           </div>
           <label style="font-size:0.65rem;cursor:pointer;color:var(--text-2);display:block;margin-bottom:8px;">
             <input type="checkbox" id="bz-cb-all" {% if bz_layers_all %}checked{% endif %}>
-            All zones <span style="opacity:0.75">(1–<span id="bz-all-n-label">{{ bz_zones }}</span>, overlaid)</span>
+            All indices <span style="opacity:0.75">(1–<span id="bz-all-n-label">{{ bz_zones }}</span>, overlaid)</span>
           </label>
           <div id="bz-cb-wrap" style="display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;">
             {% for z in range(1, 11) %}
@@ -855,13 +852,13 @@
     <!-- BZ Plot -->
     <div class="plot-card plot-card-full" data-plot-key="bz_plot">
       <div class="plot-card-title plot-card-head">
-        <div class="bz-title-row">
+        <span class="plot-card-heading-text plot-card-heading-text--bz">
           <span class="pct-dot"></span>
-          <span id="bz-plot-title">Brillouin Zones — Square Lattice (4 zones, default)</span>
-          <span id="bz-status"
-                style="margin-left:auto;font-family:var(--font-mono);
-                       font-size:0.57rem;color:var(--text-3);"></span>
-        </div>
+          <span class="bz-heading-stack">
+            <span id="bz-plot-title">Brillouin Zones — Square Lattice (4 zones, default)</span>
+            <span id="bz-status" class="bz-status-line"></span>
+          </span>
+        </span>
         {{ plot_toggle('bz_plot') }}
       </div>
       <div class="plot-inner" id="bz-plot-container" style="min-height:440px;">
