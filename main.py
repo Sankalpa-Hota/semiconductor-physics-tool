@@ -1042,7 +1042,7 @@ def home():
         bz_zones    = 10
         bz_layers   = parse_bz_layers_raw(
             request.form.get('bz_layers'), bz_zones)
-        recip_vertices, recip_n, recip_c_axis = parse_recip_from_form(request.form)
+        recip_vertices, recip_n, recip_c_axis = parse_recip_form(request.form)
         open_plots = parse_open_plots(request.form)
     else:
         open_plots = frozenset()
