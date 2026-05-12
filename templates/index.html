@@ -896,10 +896,22 @@
   window.PLOT_PLACEHOLDER_HTML = {{ plot_placeholder_html | tojson }};
 
   function oqPrepSubmit() {
-    var picks = Array.from(document.querySelectorAll('.oq-plot-pick:checked'))
-      .map(function (x) { return x.value; });
+    var merged = new Set();
+    document.querySelectorAll('.oq-plot-pick:checked').forEach(function (x) {
+      if (x.value) merged.add(x.value);
+    });
+    document.querySelectorAll('.plot-card[data-plot-key] .plot-toggle-btn[data-state="open"]').forEach(function (btn) {
+      var card = btn.closest('.plot-card[data-plot-key]');
+      if (!card) return;
+      var k = card.getAttribute('data-plot-key');
+      if (k) merged.add(k);
+    });
+    var keys = Array.from(merged).sort();
     var field = document.getElementById('open-plots-field');
-    if (field) field.value = picks.join(',');
+    if (field) field.value = keys.join(',');
+    document.querySelectorAll('.oq-plot-pick').forEach(function (cb) {
+      cb.checked = merged.has(cb.value);
+    });
     if (typeof syncBzLayersHidden === 'function') syncBzLayersHidden();
     if (typeof syncBZHiddenToForm === 'function') syncBZHiddenToForm();
     return true;

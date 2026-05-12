@@ -23,6 +23,14 @@
       if (k && uniq.indexOf(k) === -1) uniq.push(k);
     });
     field.value = uniq.join(',');
+    // Keep section checkboxes aligned so "Apply parameters" submits the same keys.
+    var set = {};
+    uniq.forEach(function (k) {
+      if (k) set[k] = true;
+    });
+    document.querySelectorAll('.oq-plot-pick').forEach(function (cb) {
+      cb.checked = !!set[cb.value];
+    });
   }
 
   function getOpenPlotsKeys() {
