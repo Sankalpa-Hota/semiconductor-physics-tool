@@ -72,6 +72,28 @@ def gi(form, name, default, lo=None, hi=None):
 
 BZ_LATTICES = frozenset({'square', 'rectangular', 'hexagonal'})
 
+# Plots are built only when the user checks them (saves CPU/RAM on small hosts).
+PLOT_KEYS = frozenset({
+    'fd', 'dos', 'ni_T', 'mu_T', 'carr_T', 'cond_T',
+    'ef_dop', 'band', 'rho_dop', 'eg_T',
+    'iv', 'schot', 'hall', 'depl',
+    'kp1d', 'kp2d', 'kp3d',
+    'bz_plot', 'phonon', 'recip',
+})
+
+PLOT_PLACEHOLDER = (
+    "<div class=\"plot-placeholder\">"
+    "<p><strong>Not rendered.</strong> Tick this chart under "
+    "<em>Plots to render</em> in the sidebar, then click "
+    "<strong>Compute</strong>.</p>"
+    "<p class=\"plot-ph-hint\">Skipping charts keeps memory use low on shared hosting.</p>"
+    "</div>"
+)
+
+
+def parse_selected_plots(form):
+    return frozenset(k for k in form.getlist('plots') if k in PLOT_KEYS)
+
 
 def _n(num):
     """Fewer sample points on Render — speeds up the very heavy / page."""
@@ -550,6 +572,9 @@ def home():
         bz_b        = gf(request.form, 'bz_b',     bz_b)
         bz_angle    = gf(request.form, 'bz_angle', bz_angle)
         bz_zones    = gi(request.form, 'bz_zones', bz_zones, lo=1, hi=10)
+        selected = parse_selected_plots(request.form)
+    else:
+        selected = frozenset()
 
     Ec    = 0.0
     Ev    = -Eg
@@ -563,32 +588,58 @@ def home():
     sigma = dm.conductivity(n, mu)
     l_mfp = dm.mean_free_path(vF, tau)
 
-    bz_plot = plot_brillouin_zones(
-        lattice=bz_lattice, a=bz_a, b=bz_b,
-        angle=bz_angle, n_zones=bz_zones)
+    def build_plots():
+        """Generate only figures the user requested."""
+        out = {}
+        if 'fd' in selected:
+            out['fd'] = plt_fermi_dirac(Ef, T)
+        if 'dos' in selected:
+            out['dos'] = plt_dos(m_eff_ratio, Ec, Ev, T, Ef)
+        if 'ni_T' in selected:
+            out['ni_T'] = plt_ni_vs_T(Nc, Nv, Eg)
+        if 'mu_T' in selected:
+            out['mu_T'] = plt_mobility_vs_T(Nd)
+        if 'carr_T' in selected:
+            out['carr_T'] = plt_carrier_vs_T(Nc, Nv, Eg, Nd)
+        if 'cond_T' in selected:
+            out['cond_T'] = plt_conductivity_vs_T(Nc, Nv, Eg, Nd)
+        if 'ef_dop' in selected:
+            out['ef_dop'] = plt_ef_vs_doping(Nc, Nv, Eg, T)
+        if 'band' in selected:
+            out['band'] = plt_band_diagram(Ef, Ec, Ev, Eg)
+        if 'rho_dop' in selected:
+            out['rho_dop'] = plt_resistivity_vs_doping()
+        if 'eg_T' in selected:
+            out['eg_T'] = plt_bandgap_vs_T(Eg)
+        if 'kp1d' in selected:
+            out['kp1d'] = plt_kp_1d(a, V0_J, b)
+        if 'kp2d' in selected:
+            out['kp2d'] = plt_kp_2d(a, V0_J, b)
+        if 'kp3d' in selected:
+            out['kp3d'] = plt_kp_3d(a, V0_J, b)
+        if 'recip' in selected:
+            out['recip'] = plt_reciprocal_lattice()
+        if 'hall' in selected:
+            out['hall'] = plt_hall(Nc, Nv, Eg, Nd)
+        if 'iv' in selected:
+            out['iv'] = plt_iv_diode(T, Eg)
+        if 'schot' in selected:
+            out['schot'] = plt_schottky(Eg)
+        if 'phonon' in selected:
+            out['phonon'] = plt_phonon()
+        if 'depl' in selected:
+            out['depl'] = plt_depletion(Nc, Nd, Eg)
+        if 'bz_plot' in selected:
+            out['bz_plot'] = plot_brillouin_zones(
+                lattice=bz_lattice, a=bz_a, b=bz_b,
+                angle=bz_angle, n_zones=bz_zones)
 
-    plots = dict(
-        fd      = plt_fermi_dirac(Ef, T),
-        dos     = plt_dos(m_eff_ratio, Ec, Ev, T, Ef),
-        ni_T    = plt_ni_vs_T(Nc, Nv, Eg),
-        mu_T    = plt_mobility_vs_T(Nd),
-        carr_T  = plt_carrier_vs_T(Nc, Nv, Eg, Nd),
-        cond_T  = plt_conductivity_vs_T(Nc, Nv, Eg, Nd),
-        ef_dop  = plt_ef_vs_doping(Nc, Nv, Eg, T),
-        band    = plt_band_diagram(Ef, Ec, Ev, Eg),
-        rho_dop = plt_resistivity_vs_doping(),
-        eg_T    = plt_bandgap_vs_T(Eg),
-        kp1d    = plt_kp_1d(a, V0_J, b),
-        kp2d    = plt_kp_2d(a, V0_J, b),
-        kp3d    = plt_kp_3d(a, V0_J, b),
-        recip   = plt_reciprocal_lattice(),
-        hall    = plt_hall(Nc, Nv, Eg, Nd),
-        iv      = plt_iv_diode(T, Eg),
-        schot   = plt_schottky(Eg),
-        phonon  = plt_phonon(),
-        depl    = plt_depletion(Nc, Nd, Eg),
-        bz_plot = bz_plot,
-    )
+        for key in PLOT_KEYS:
+            if key not in out:
+                out[key] = PLOT_PLACEHOLDER
+        return out
+
+    plots = build_plots()
 
     return render_template(
         'index.html',
@@ -599,6 +650,7 @@ def home():
         mu=mu, sigma=sigma, l=l_mfp,
         bz_lattice=bz_lattice, bz_a=bz_a, bz_b=bz_b,
         bz_angle=bz_angle, bz_zones=bz_zones,
+        selected_plots=selected,
         **plots
     )
 

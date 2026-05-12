@@ -237,7 +237,64 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-compute">⟳ Compute &amp; Render All</button>
+      <div class="param-section plot-picker-section">
+        <div class="param-section-title">Plots to render</div>
+        <p class="plot-picker-note">Only checked figures are generated. This keeps memory use low on small servers (for example 512&nbsp;MB).</p>
+        <div class="plot-picker-actions">
+          <button type="button" class="linkish" id="plot-pick-all">Select all</button>
+          <span class="plot-picker-sep">·</span>
+          <button type="button" class="linkish" id="plot-pick-none">Clear</button>
+        </div>
+        <div class="plot-picker-grid">
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Statistics</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="fd" {% if 'fd' in selected_plots %}checked{% endif %}> Fermi–Dirac</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="dos" {% if 'dos' in selected_plots %}checked{% endif %}> DoS &amp; occupation</label>
+          </div>
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Transport</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="ni_T" {% if 'ni_T' in selected_plots %}checked{% endif %}> nᵢ vs T</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="mu_T" {% if 'mu_T' in selected_plots %}checked{% endif %}> Mobility vs T</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="carr_T" {% if 'carr_T' in selected_plots %}checked{% endif %}> Carriers vs T</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="cond_T" {% if 'cond_T' in selected_plots %}checked{% endif %}> Conductivity vs T</label>
+          </div>
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Doping &amp; bands</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="ef_dop" {% if 'ef_dop' in selected_plots %}checked{% endif %}> Ef vs doping</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="band" {% if 'band' in selected_plots %}checked{% endif %}> Band diagram</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="rho_dop" {% if 'rho_dop' in selected_plots %}checked{% endif %}> Resistivity vs doping</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="eg_T" {% if 'eg_T' in selected_plots %}checked{% endif %}> Eg vs T (Varshni)</label>
+          </div>
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Devices</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="iv" {% if 'iv' in selected_plots %}checked{% endif %}> Diode I–V</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="schot" {% if 'schot' in selected_plots %}checked{% endif %}> Schottky bands</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="hall" {% if 'hall' in selected_plots %}checked{% endif %}> Hall voltage</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="depl" {% if 'depl' in selected_plots %}checked{% endif %}> Depletion width</label>
+          </div>
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Kronig–Penney</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="kp1d" {% if 'kp1d' in selected_plots %}checked{% endif %}> E(k) 1D</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="kp2d" {% if 'kp2d' in selected_plots %}checked{% endif %}> Band map vs V₀</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="kp3d" {% if 'kp3d' in selected_plots %}checked{% endif %}> 3D surface E(kx,ky)</label>
+          </div>
+          <div class="plot-picker-col">
+            <div class="plot-picker-sub">Lattice &amp; zones</div>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="bz_plot" {% if 'bz_plot' in selected_plots %}checked{% endif %}> Brillouin zones (server)</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="phonon" {% if 'phonon' in selected_plots %}checked{% endif %}> Phonon dispersion</label>
+            <label class="plot-chk"><input type="checkbox" name="plots" value="recip" {% if 'recip' in selected_plots %}checked{% endif %}> Reciprocal lattice 3D</label>
+          </div>
+        </div>
+        <p class="plot-picker-hint">Brillouin zones can also be updated with <strong>Render Zones</strong> without reloading the page.</p>
+      </div>
+
+      <input type="hidden" name="bz_lattice" id="hid-bz-lattice" value="{{ bz_lattice }}">
+      <input type="hidden" name="bz_a" id="hid-bz-a" value="{{ bz_a }}">
+      <input type="hidden" name="bz_b" id="hid-bz-b" value="{{ bz_b }}">
+      <input type="hidden" name="bz_angle" id="hid-bz-angle" value="{{ bz_angle }}">
+      <input type="hidden" name="bz_zones" id="hid-bz-zones" value="{{ bz_zones }}">
+
+      <button type="submit" class="btn-compute">Compute parameters &amp; selected plots</button>
     </form>
   </aside>
 
@@ -467,14 +524,14 @@
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
           {% for lt in ['square','rectangular','hexagonal'] %}
           <button type="button"
-                  class="bz-lattice-btn{% if lt == 'square' %} bz-lat-active{% endif %}"
+                  class="bz-lattice-btn{% if lt == bz_lattice %} bz-lat-active{% endif %}"
                   data-lattice="{{ lt }}">
             {{ lt|capitalize }}
           </button>
           {% endfor %}
         </div>
         <!-- Hidden input carries value to AJAX -->
-        <input type="hidden" id="bz-lattice-val" value="square">
+        <input type="hidden" id="bz-lattice-val" value="{{ bz_lattice }}">
       </div>
 
       <!-- a slider + number -->
@@ -588,7 +645,7 @@
 <!-- ── FOOTER ───────────────────────────────────────────────── -->
 <footer class="site-footer">
   SEMICONDUCTOR PHYSICS TOOL &nbsp;·&nbsp;
-  Flask + NumPy + SciPy + Plotly + Shapely &nbsp;·&nbsp;
+  Flask + NumPy + Plotly + Shapely &nbsp;·&nbsp;
   <a href="/about">About &amp; Summary</a> &nbsp;·&nbsp;
   <a href="/contact">Contact</a>
 </footer>
@@ -690,11 +747,11 @@ const BZ_COLORS = [
 ];
 
 let bzState = {
-  lattice: 'square',
-  a:       1.0,
-  b:       1.5,
-  angle:   120,
-  zones:   4
+  lattice: {{ bz_lattice | tojson }},
+  a:       {{ bz_a }},
+  b:       {{ bz_b }},
+  angle:   {{ bz_angle }},
+  zones:   {{ bz_zones | int }}
 };
 
 /** Central sync for all BZ parameters */
@@ -741,16 +798,74 @@ function buildBZLegend() {
   }
 }
 
+/** Copy Brillouin panel state into hidden fields before form POST */
+function syncBZHiddenToForm() {
+  const lat = document.getElementById('hid-bz-lattice');
+  const a = document.getElementById('hid-bz-a');
+  const b = document.getElementById('hid-bz-b');
+  const ang = document.getElementById('hid-bz-angle');
+  const z = document.getElementById('hid-bz-zones');
+  if (lat) lat.value = bzState.lattice;
+  if (a) a.value = bzState.a;
+  if (b) b.value = bzState.b;
+  if (ang) ang.value = bzState.angle;
+  if (z) z.value = bzState.zones;
+}
+
+/** Align BZ sliders and lattice buttons with bzState (after server round-trip). */
+function initBZUIFromState() {
+  const lv = document.getElementById('bz-lattice-val');
+  if (lv) lv.value = bzState.lattice;
+  document.querySelectorAll('.bz-lattice-btn').forEach(btn => {
+    btn.classList.toggle('bz-lat-active', btn.dataset.lattice === bzState.lattice);
+  });
+  const isRect = bzState.lattice === 'rectangular';
+  const isHex  = bzState.lattice === 'hexagonal';
+  const bCtrl     = document.getElementById('bz-b-ctrl');
+  const angleCtrl = document.getElementById('bz-angle-ctrl');
+  if (bCtrl) {
+    bCtrl.style.opacity       = isRect ? '1' : '0.3';
+    bCtrl.style.pointerEvents = isRect ? 'auto' : 'none';
+  }
+  if (angleCtrl) {
+    angleCtrl.style.opacity       = isHex ? '1' : '0.3';
+    angleCtrl.style.pointerEvents = isHex ? 'auto' : 'none';
+  }
+  const ar = document.getElementById('bz-a-range');
+  const an = document.getElementById('bz-a-num');
+  if (ar && an) {
+    an.value = bzState.a.toFixed(1);
+    ar.value = bzState.a;
+    updateRangeFill(ar);
+  }
+  const br = document.getElementById('bz-b-range');
+  const bn = document.getElementById('bz-b-num');
+  if (br && bn) {
+    bn.value = bzState.b.toFixed(1);
+    br.value = bzState.b;
+    updateRangeFill(br);
+  }
+  const ir = document.getElementById('bz-angle-range');
+  const inn = document.getElementById('bz-angle-num');
+  if (ir && inn) {
+    inn.value = bzState.angle.toFixed(0);
+    ir.value = bzState.angle;
+    updateRangeFill(ir);
+  }
+  const zr = document.getElementById('bz-zones-range');
+  const zn = document.getElementById('bz-zones-num');
+  if (zr && zn) {
+    zn.value = bzState.zones;
+    zr.value = bzState.zones;
+    updateRangeFill(zr);
+  }
+  buildBZLegend();
+}
+
 /** Wire up lattice-type buttons */
 document.addEventListener('DOMContentLoaded', () => {
 
-  buildBZLegend();
-
-  // Init BZ range fills
-  ['bz-a-range','bz-b-range','bz-angle-range','bz-zones-range'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) updateRangeFill(el);
-  });
+  initBZUIFromState();
 
   document.querySelectorAll('.bz-lattice-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -776,6 +891,22 @@ document.addEventListener('DOMContentLoaded', () => {
       angleCtrl.style.pointerEvents = isHex ? 'auto' : 'none';
     });
   });
+
+  const simForm = document.getElementById('sim-form');
+  if (simForm) simForm.addEventListener('submit', syncBZHiddenToForm);
+
+  const pickAll = document.getElementById('plot-pick-all');
+  const pickNone = document.getElementById('plot-pick-none');
+  if (pickAll) {
+    pickAll.addEventListener('click', () => {
+      document.querySelectorAll('input[name="plots"]').forEach(c => { c.checked = true; });
+    });
+  }
+  if (pickNone) {
+    pickNone.addEventListener('click', () => {
+      document.querySelectorAll('input[name="plots"]').forEach(c => { c.checked = false; });
+    });
+  }
 });
 
 /** Fire AJAX request to /api/bz and inject result */

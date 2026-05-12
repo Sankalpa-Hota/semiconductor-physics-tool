@@ -23,7 +23,7 @@ https://github.com/Sankalpa-Hota/semiconductor-physics-tool
 ## Features
 
 - Web interface for editing simulation inputs
-- Many interactive Plotly charts on one dashboard
+- Plotly charts are optional: tick only the plots you need in the sidebar, then click **Compute**. This keeps CPU and RAM low on small hosting plans.
 - Physics-oriented defaults (silicon-oriented starting parameters)
 - Suited for teaching and self-study
 
