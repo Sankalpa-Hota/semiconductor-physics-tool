@@ -4,7 +4,6 @@ from brillouin_zones import plot_brillouin_zones
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import plot
-from scipy.interpolate import interp1d
 import os
 
 import fermi_boltzmann as fb
@@ -55,6 +54,23 @@ def gf(form, name, default):
         return float(v) if v else default
     except Exception:
         return default
+
+
+def gi(form, name, default, lo=None, hi=None):
+    """Bounded integer from a form field."""
+    try:
+        raw = form.get(name, '')
+        v = int(round(float(raw.strip() or default)))
+        if lo is not None:
+            v = max(lo, v)
+        if hi is not None:
+            v = min(hi, v)
+        return v
+    except (TypeError, ValueError):
+        return default
+
+
+BZ_LATTICES = frozenset({'square', 'rectangular', 'hexagonal'})
 
 
 def pplot(fig):
@@ -357,18 +373,16 @@ def plt_kp_3d(a, V0_J, b):
                 "Insufficient KP data for 3D surface plot.</p>")
     k_all = np.concatenate([-k_vals[::-1], k_vals])
     E_all = np.concatenate([E_vals[::-1],  E_vals])
-    kx, ky = np.meshgrid(k_all/1e10, k_all/1e10)
+    k_axis = k_all / 1e10
+    kx, ky = np.meshgrid(k_axis, k_axis)
+    e0, e1 = E_all[0], E_all[-1]
     try:
-        fi = interp1d(k_all/1e10, E_all, kind='linear',
-                      bounds_error=False,
-                      fill_value=(E_all[0], E_all[-1]))
-        Ez = np.sqrt(fi(np.abs(kx))**2 * 0.5 + fi(np.abs(ky))**2 * 0.5)
+        ex = np.interp(np.abs(kx), k_axis, E_all, left=e0, right=e1)
+        ey = np.interp(np.abs(ky), k_axis, E_all, left=e0, right=e1)
+        Ez = np.sqrt(ex ** 2 * 0.5 + ey ** 2 * 0.5)
     except Exception:
-        r  = np.sqrt(kx**2 + ky**2)
-        fi = interp1d(k_all/1e10, E_all, kind='linear',
-                      bounds_error=False,
-                      fill_value=(E_all[0], E_all[-1]))
-        Ez = fi(r)
+        r = np.hypot(kx, ky)
+        Ez = np.interp(r, k_axis, E_all, left=e0, right=e1)
 
     fig = go.Figure(layout=make_layout('3D Band Structure E(kx, ky)'))
     fig.add_trace(go.Surface(
@@ -518,11 +532,12 @@ def home():
         a           = gf(request.form, 'a',     a)
         V0          = gf(request.form, 'V0',    V0)
         b           = gf(request.form, 'b',     b)
-        bz_lattice  = request.form.get('bz_lattice', bz_lattice)
+        _lat = request.form.get('bz_lattice', bz_lattice)
+        bz_lattice  = _lat if _lat in BZ_LATTICES else bz_lattice
         bz_a        = gf(request.form, 'bz_a',     bz_a)
         bz_b        = gf(request.form, 'bz_b',     bz_b)
         bz_angle    = gf(request.form, 'bz_angle', bz_angle)
-        bz_zones    = int(gf(request.form, 'bz_zones', bz_zones))
+        bz_zones    = gi(request.form, 'bz_zones', bz_zones, lo=1, hi=10)
 
     Ec    = 0.0
     Ev    = -Eg
@@ -578,12 +593,23 @@ def home():
 
 @app.route('/api/bz', methods=['POST'])
 def api_bz():
-    data    = request.get_json() or {}
-    lattice = data.get('lattice', 'square')
-    a       = float(data.get('a',     1.0))
-    b       = float(data.get('b',     1.5))
-    angle   = float(data.get('angle', 120.0))
-    n_zones = int(data.get('zones',   4))
+    data = request.get_json() or {}
+    raw_lat = data.get('lattice', 'square')
+    lattice = raw_lat if raw_lat in BZ_LATTICES else 'square'
+    try:
+        a = float(data.get('a', 1.0))
+        b = float(data.get('b', 1.5))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid lattice constants'}), 400
+    try:
+        angle = float(data.get('angle', 120.0))
+    except (TypeError, ValueError):
+        angle = 120.0
+    try:
+        n_zones = int(round(float(data.get('zones', 4))))
+        n_zones = max(1, min(10, n_zones))
+    except (TypeError, ValueError):
+        n_zones = 4
     try:
         div = plot_brillouin_zones(
             lattice=lattice, a=a, b=b,
