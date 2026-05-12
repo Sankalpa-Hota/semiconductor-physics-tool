@@ -91,9 +91,10 @@ PLOT_PLACEHOLDER = (
     "</div>"
 )
 
-# One default open figure per multi-plot section (plus single-plot sections).
+# Initial page load: only these figures are generated (saves RAM on small hosts).
+# Order matches the first six plot cards in templates/index.html.
 DEFAULT_OPEN_PLOTS = frozenset({
-    'fd', 'ni_T', 'ef_dop', 'iv', 'ek_comp', 'kp1d', 'bz_plot', 'phonon',
+    'fd', 'dos', 'dos_qw', 'ni_T', 'mu_T', 'carr_T',
 })
 
 
