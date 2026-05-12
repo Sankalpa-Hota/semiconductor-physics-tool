@@ -41,7 +41,50 @@ def gf(form, name, default):
         return float(v) if v else default
     except Exception:
         return default
+# ── ADD to imports at top of main.py ──────────────────────────
+from chatbot import chatbot_bp
+from brillouin_zones import plot_brillouin_zones
 
+# ── ADD after app = Flask(__name__) ───────────────────────────
+app.register_blueprint(chatbot_bp)
+
+# ── ADD this new plot function alongside your other plt_ functions ──
+def plt_brillouin_zones(lattice='square', a=1.0, b=1.0, angle=120, n_zones=4):
+    """Wrapper — delegates to brillouin_zones.py"""
+    return plot_brillouin_zones(lattice=lattice, a=a, b=b,
+                                angle=angle, n_zones=n_zones)
+
+# ── ADD these parameters to your home() route defaults ─────────
+# BZ params (add to the defaults block and POST parsing):
+#   bz_lattice = request.form.get('bz_lattice', 'square')
+#   bz_a       = gf(request.form, 'bz_a',  1.0)
+#   bz_b       = gf(request.form, 'bz_b',  1.0)
+#   bz_angle   = gf(request.form, 'bz_angle', 120.0)
+#   bz_zones   = int(gf(request.form, 'bz_zones', 4))
+#   bz_plot    = plt_brillouin_zones(bz_lattice, bz_a, bz_b, bz_angle, bz_zones)
+# Pass bz_plot, bz_lattice, bz_a, bz_b, bz_angle, bz_zones to render_template
+
+# ── ADD this route ─────────────────────────────────────────────
+@app.route("/about")
+def about():
+    return render_template("summary.html")
+
+# ── ADD this BZ AJAX route (lets the BZ update without full page reload) ──
+@app.route("/api/bz", methods=["POST"])
+def api_bz():
+    from flask import jsonify
+    data    = request.get_json() or {}
+    lattice = data.get('lattice', 'square')
+    a       = float(data.get('a', 1.0))
+    b       = float(data.get('b', 1.0))
+    angle   = float(data.get('angle', 120.0))
+    n_zones = int(data.get('n_zones', 4))
+    try:
+        div = plot_brillouin_zones(lattice=lattice, a=a, b=b,
+                                   angle=angle, n_zones=n_zones)
+        return jsonify({"plot": div})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # ══════════════════════════════════════════════════════════════
 #  PHYSICS
 # ══════════════════════════════════════════════════════════════
