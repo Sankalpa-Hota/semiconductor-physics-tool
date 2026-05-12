@@ -9,192 +9,244 @@
 </head>
 <body>
 
-<!-- ── HEADER ────────────────────────────────────────── -->
+<!-- ── HEADER ────────────────────────────────────────────────── -->
 <header class="site-header">
   <div class="logo">
     <span class="logo-dot"></span>
     SEMICONDUCTOR PHYSICS LAB
   </div>
   <div class="header-badges">
-    <span class="badge badge-cyan">v2.0</span>
+    <span class="badge badge-cyan">v3.0</span>
     <span class="badge badge-green">LIVE SIM</span>
+    <a href="/about"
+       style="font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.1em;
+              text-transform:uppercase;color:var(--purple);text-decoration:none;
+              padding:3px 10px;border:1px solid var(--purple);border-radius:20px;
+              background:#9b5de510;transition:all 0.2s;"
+       onmouseover="this.style.background='#9b5de522'"
+       onmouseout="this.style.background='#9b5de510'">
+      About
+    </a>
   </div>
 </header>
 
-<!-- ── CIRCUIT HERO ─────────────────────────────────── -->
+<!-- ── CIRCUIT HERO ──────────────────────────────────────────── -->
 <div class="circuit-hero">
   <canvas id="circuit-canvas"></canvas>
   <div class="hero-overlay">
     <div class="hero-title">Interactive Physics Simulator</div>
-    <div class="hero-sub">Fermi–Dirac · Drude · Kronig–Penney · Band Theory · Phonons</div>
+    <div class="hero-sub">
+      Fermi–Dirac · Drude · Kronig–Penney · Brillouin Zones · Band Theory · Phonons
+    </div>
     <div class="hero-stats">
       <div class="hero-stat">
         <div class="sv">19+</div>
         <div class="sl">Visualizations</div>
       </div>
       <div class="hero-stat">
+        <div class="sv">10</div>
+        <div class="sl">BZ Zones</div>
+      </div>
+      <div class="hero-stat">
         <div class="sv">12</div>
         <div class="sl">Parameters</div>
       </div>
       <div class="hero-stat">
-        <div class="sv">6</div>
-        <div class="sl">Physics Models</div>
+        <div class="sv">AI</div>
+        <div class="sl">PhysBot RAG</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── APP LAYOUT ────────────────────────────────────── -->
+<!-- ── APP LAYOUT ─────────────────────────────────────────────── -->
 <div class="app-layout">
 
-  <!-- SIDEBAR -->
+  <!-- ════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
   <aside class="sidebar">
     <form method="POST" id="sim-form">
 
-      <!-- Boltzmann / Carrier -->
+      <!-- ── Carrier Statistics ── -->
       <div class="param-section">
         <div class="param-section-title">Carrier Statistics</div>
 
+        <!-- Nc -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Nc (cm⁻³)</span>
-            <span class="param-value-badge" id="lbl-Nc">{{ "%.2e"|format(Nc) }}</span>
+            <input type="number" class="param-num-input" id="num-Nc"
+                   value="{{ '%.2e'|format(Nc) }}" step="any"
+                   onchange="syncNum('Nc',this.value,'sci')">
           </div>
           <input type="range" name="Nc" id="Nc"
-            min="1e17" max="1e20" step="1e17" value="{{ Nc }}"
-            oninput="updateSlider(this,'lbl-Nc','sci')">
+                 min="1e17" max="1e20" step="1e17" value="{{ Nc }}"
+                 oninput="updateSlider(this,'num-Nc','sci')">
           <div class="range-bounds"><span>1×10¹⁷</span><span>1×10²⁰</span></div>
         </div>
 
+        <!-- Nv -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Nv (cm⁻³)</span>
-            <span class="param-value-badge" id="lbl-Nv">{{ "%.2e"|format(Nv) }}</span>
+            <input type="number" class="param-num-input" id="num-Nv"
+                   value="{{ '%.2e'|format(Nv) }}" step="any"
+                   onchange="syncNum('Nv',this.value,'sci')">
           </div>
           <input type="range" name="Nv" id="Nv"
-            min="1e17" max="1e20" step="1e17" value="{{ Nv }}"
-            oninput="updateSlider(this,'lbl-Nv','sci')">
+                 min="1e17" max="1e20" step="1e17" value="{{ Nv }}"
+                 oninput="updateSlider(this,'num-Nv','sci')">
           <div class="range-bounds"><span>1×10¹⁷</span><span>1×10²⁰</span></div>
         </div>
 
+        <!-- Eg -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Bandgap Eg (eV)</span>
-            <span class="param-value-badge" id="lbl-Eg">{{ "%.3f"|format(Eg) }} eV</span>
+            <input type="number" class="param-num-input" id="num-Eg"
+                   value="{{ '%.3f'|format(Eg) }}" min="0.1" max="5.5" step="0.01"
+                   onchange="syncNum('Eg',this.value,'fix3')">
           </div>
           <input type="range" name="Eg" id="Eg"
-            min="0.1" max="5.5" step="0.01" value="{{ Eg }}"
-            oninput="updateSlider(this,'lbl-Eg','fix3','eV')">
+                 min="0.1" max="5.5" step="0.01" value="{{ Eg }}"
+                 oninput="updateSlider(this,'num-Eg','fix3')">
           <div class="range-bounds"><span>0.1 eV</span><span>5.5 eV</span></div>
         </div>
 
+        <!-- Nd -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Doping Nd (cm⁻³)</span>
-            <span class="param-value-badge" id="lbl-Nd">{{ "%.2e"|format(Nd) }}</span>
+            <input type="number" class="param-num-input" id="num-Nd"
+                   value="{{ '%.2e'|format(Nd) }}" step="any"
+                   onchange="syncNum('Nd',this.value,'sci')">
           </div>
           <input type="range" name="Nd" id="Nd"
-            min="1e13" max="1e20" step="1e13" value="{{ Nd }}"
-            oninput="updateSlider(this,'lbl-Nd','sci')">
+                 min="1e13" max="1e20" step="1e13" value="{{ Nd }}"
+                 oninput="updateSlider(this,'num-Nd','sci')">
           <div class="range-bounds"><span>10¹³</span><span>10²⁰</span></div>
         </div>
 
+        <!-- T -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Temperature (K)</span>
-            <span class="param-value-badge" id="lbl-T">{{ T|int }} K</span>
+            <input type="number" class="param-num-input" id="num-T"
+                   value="{{ T|int }}" min="100" max="900" step="10"
+                   onchange="syncNum('T',this.value,'int')">
           </div>
           <input type="range" name="T" id="T"
-            min="100" max="900" step="10" value="{{ T }}"
-            oninput="updateSlider(this,'lbl-T','int','K')">
+                 min="100" max="900" step="10" value="{{ T }}"
+                 oninput="updateSlider(this,'num-T','int')">
           <div class="range-bounds"><span>100 K</span><span>900 K</span></div>
         </div>
       </div>
 
-      <!-- Drude / Transport -->
+      <!-- ── Drude Transport ── -->
       <div class="param-section">
         <div class="param-section-title">Drude Transport</div>
 
+        <!-- tau -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Relax. Time τ (fs)</span>
-            <span class="param-value-badge" id="lbl-tau">{{ "%.1f"|format(tau*1e15) }} fs</span>
+            <input type="number" class="param-num-input" id="num-tau"
+                   value="{{ '%.2f'|format(tau*1e15) }}" min="0.1" max="100" step="0.1"
+                   onchange="syncNumTau(this.value)">
           </div>
           <input type="range" name="tau" id="tau"
-            min="1e-16" max="1e-13" step="1e-16" value="{{ tau }}"
-            oninput="updateSlider(this,'lbl-tau','tau')">
+                 min="1e-16" max="1e-13" step="1e-16" value="{{ tau }}"
+                 oninput="updateSlider(this,'num-tau','tau')">
           <div class="range-bounds"><span>0.1 fs</span><span>100 fs</span></div>
         </div>
 
+        <!-- vF -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Fermi Velocity (m/s)</span>
-            <span class="param-value-badge" id="lbl-vF">{{ "%.2e"|format(vF) }}</span>
+            <input type="number" class="param-num-input" id="num-vF"
+                   value="{{ '%.2e'|format(vF) }}" step="any"
+                   onchange="syncNum('vF',this.value,'sci')">
           </div>
           <input type="range" name="vF" id="vF"
-            min="1e4" max="1e7" step="1e4" value="{{ vF }}"
-            oninput="updateSlider(this,'lbl-vF','sci')">
+                 min="1e4" max="1e7" step="1e4" value="{{ vF }}"
+                 oninput="updateSlider(this,'num-vF','sci')">
           <div class="range-bounds"><span>10⁴</span><span>10⁷</span></div>
         </div>
 
+        <!-- m_eff -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Eff. Mass m* (m₀)</span>
-            <span class="param-value-badge" id="lbl-m">{{ "%.3f"|format(m_eff) }} m₀</span>
+            <input type="number" class="param-num-input" id="num-m_eff"
+                   value="{{ '%.3f'|format(m_eff) }}" min="0.01" max="2.0" step="0.01"
+                   onchange="syncNum('m_eff',this.value,'fix3')">
           </div>
           <input type="range" name="m_eff" id="m_eff"
-            min="0.01" max="2.0" step="0.01" value="{{ m_eff }}"
-            oninput="updateSlider(this,'lbl-m','fix3','m₀')">
-          <div class="range-bounds"><span>0.01</span><span>2.0</span></div>
+                 min="0.01" max="2.0" step="0.01" value="{{ m_eff }}"
+                 oninput="updateSlider(this,'num-m_eff','fix3')">
+          <div class="range-bounds"><span>0.01 m₀</span><span>2.0 m₀</span></div>
         </div>
       </div>
 
-      <!-- Kronig–Penney -->
+      <!-- ── Kronig–Penney ── -->
       <div class="param-section">
         <div class="param-section-title">Kronig–Penney Model</div>
 
+        <!-- a -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Lattice const. a (Å)</span>
-            <span class="param-value-badge" id="lbl-a">{{ "%.1f"|format(a*1e10) }} Å</span>
+            <input type="number" class="param-num-input" id="num-a"
+                   value="{{ '%.1f'|format(a*1e10) }}" min="1" max="20" step="0.5"
+                   onchange="syncNumAngstrom('a',this.value)">
           </div>
           <input type="range" name="a" id="a"
-            min="1e-10" max="20e-10" step="0.5e-10" value="{{ a }}"
-            oninput="updateSlider(this,'lbl-a','angstrom')">
+                 min="1e-10" max="20e-10" step="0.5e-10" value="{{ a }}"
+                 oninput="updateSlider(this,'num-a','angstrom')">
           <div class="range-bounds"><span>1 Å</span><span>20 Å</span></div>
         </div>
 
+        <!-- V0 -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Barrier V₀ (eV)</span>
-            <span class="param-value-badge" id="lbl-V0">{{ "%.1f"|format(V0) }} eV</span>
+            <input type="number" class="param-num-input" id="num-V0"
+                   value="{{ '%.1f'|format(V0) }}" min="0.5" max="30" step="0.5"
+                   onchange="syncNum('V0',this.value,'fix1')">
           </div>
           <input type="range" name="V0" id="V0"
-            min="0.5" max="30" step="0.5" value="{{ V0 }}"
-            oninput="updateSlider(this,'lbl-V0','fix1','eV')">
+                 min="0.5" max="30" step="0.5" value="{{ V0 }}"
+                 oninput="updateSlider(this,'num-V0','fix1')">
           <div class="range-bounds"><span>0.5 eV</span><span>30 eV</span></div>
         </div>
 
+        <!-- b -->
         <div class="param-row">
           <div class="param-label">
             <span class="pname">Barrier Width b (Å)</span>
-            <span class="param-value-badge" id="lbl-b">{{ "%.1f"|format(b*1e10) }} Å</span>
+            <input type="number" class="param-num-input" id="num-b"
+                   value="{{ '%.1f'|format(b*1e10) }}" min="0.1" max="10" step="0.1"
+                   onchange="syncNumAngstrom('b',this.value)">
           </div>
           <input type="range" name="b" id="b"
-            min="0.1e-10" max="10e-10" step="0.1e-10" value="{{ b }}"
-            oninput="updateSlider(this,'lbl-b','angstrom')">
+                 min="0.1e-10" max="10e-10" step="0.1e-10" value="{{ b }}"
+                 oninput="updateSlider(this,'num-b','angstrom')">
           <div class="range-bounds"><span>0.1 Å</span><span>10 Å</span></div>
         </div>
       </div>
 
-      <button type="submit" class="btn-compute">⟳ Compute &amp; Render</button>
+      <button type="submit" class="btn-compute">⟳ Compute &amp; Render All</button>
     </form>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- ════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
   <main class="main-content">
 
-    <!-- Results Bar -->
+    <!-- ── Results Bar ───────────────────────────────────── -->
     <div class="results-bar">
       <div class="result-cell">
         <div class="rl">Intrinsic nᵢ</div>
@@ -233,166 +285,599 @@
       </div>
     </div>
 
-    <!-- ── QUANTUM STATISTICS ── -->
-    <div class="section-header">Quantum Statistics & Occupation</div>
+    <!-- ══════════════════════════════════════
+         1. QUANTUM STATISTICS & OCCUPATION
+    ══════════════════════════════════════ -->
+    <div class="section-header">Quantum Statistics &amp; Occupation</div>
     <div class="eq-strip">
-      <span>f(E) = 1 / (e^((E−Eᶠ)/kT) + 1)</span>
+      <span>f(E) = 1 / (e<sup>(E−Eᶠ)/kT</sup> + 1)</span>
       <span class="eq">Eᶠ = Ec + kT·ln(Nd/nᵢ)</span>
-      <span>nᵢ = √(Nc·Nv) e^(−Eg/2kT)</span>
+      <span>nᵢ = √(Nc·Nv) · e<sup>−Eg/2kT</sup></span>
     </div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Fermi–Dirac at 5 Temperatures</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Fermi–Dirac at 5 Temperatures
+        </div>
         <div class="plot-inner">{{ fd | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>DoS & Fermi Occupation</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Density of States &amp; Fermi Occupation
+        </div>
         <div class="plot-inner">{{ dos | safe }}</div>
       </div>
     </div>
 
-    <!-- ── TRANSPORT ── -->
-    <div class="section-header">Transport & Carrier Properties</div>
+    <!-- ══════════════════════════════════════
+         2. TRANSPORT & CARRIER PROPERTIES
+    ══════════════════════════════════════ -->
+    <div class="section-header">Transport &amp; Carrier Properties</div>
     <div class="eq-strip">
       <span>σ = n·q·μ</span>
-      <span class="eq">1/μ = 1/μ_L + 1/μ_I  (Matthiessen)</span>
-      <span>l = vF·τ</span>
+      <span class="eq">1/μ = 1/μ_L + 1/μ_I &nbsp;(Matthiessen)</span>
+      <span>l = v<sub>F</sub>·τ</span>
     </div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>nᵢ vs Temperature</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>nᵢ vs Temperature
+        </div>
         <div class="plot-inner">{{ ni_T | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Mobility vs Temperature</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Mobility vs Temperature
+        </div>
         <div class="plot-inner">{{ mu_T | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Carrier Concentrations vs T</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Carrier Concentrations vs T
+        </div>
         <div class="plot-inner">{{ carr_T | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Conductivity vs Temperature</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Conductivity vs Temperature
+        </div>
         <div class="plot-inner">{{ cond_T | safe }}</div>
       </div>
     </div>
 
-    <!-- ── DOPING & FERMI LEVEL ── -->
-    <div class="section-header">Doping & Energy Levels</div>
+    <!-- ══════════════════════════════════════
+         3. DOPING & ENERGY LEVELS
+    ══════════════════════════════════════ -->
+    <div class="section-header">Doping &amp; Energy Levels</div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Fermi Level vs Doping</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Fermi Level vs Doping (n-type)
+        </div>
         <div class="plot-inner">{{ ef_dop | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Energy Band Diagram</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Energy Band Diagram
+        </div>
         <div class="plot-inner">{{ band | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Resistivity vs Doping</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Resistivity vs Doping
+        </div>
         <div class="plot-inner">{{ rho_dop | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Bandgap vs Temperature (Varshni)</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Bandgap vs Temperature (Varshni)
+        </div>
         <div class="plot-inner">{{ eg_T | safe }}</div>
       </div>
     </div>
 
-    <!-- ── JUNCTIONS ── -->
-    <div class="section-header">Junctions & Devices</div>
+    <!-- ══════════════════════════════════════
+         4. JUNCTIONS & DEVICES
+    ══════════════════════════════════════ -->
+    <div class="section-header">Junctions &amp; Devices</div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>p-n Junction I–V</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>p-n Junction I–V Characteristic
+        </div>
         <div class="plot-inner">{{ iv | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Schottky Barrier Band Diagram</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Schottky Barrier Band Diagram
+        </div>
         <div class="plot-inner">{{ schot | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Hall Effect: V_H vs B</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Hall Effect: V<sub>H</sub> vs B-Field
+        </div>
         <div class="plot-inner">{{ hall | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Depletion Width vs Vbi</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Depletion Width vs Built-in Voltage
+        </div>
         <div class="plot-inner">{{ depl | safe }}</div>
       </div>
     </div>
 
-    <!-- ── BAND STRUCTURE ── -->
+    <!-- ══════════════════════════════════════
+         5. KRONIG–PENNEY BAND STRUCTURE
+    ══════════════════════════════════════ -->
     <div class="section-header">Kronig–Penney Band Structure</div>
     <div class="eq-strip">
-      <span class="eq">cos(ka) = cos(α(a−b))cosh(βb) + (β²−α²)/(2αβ) sin(α(a−b))sinh(βb)</span>
+      <span class="eq">
+        cos(ka) = cos(α(a−b))·cosh(βb) + (β²−α²)/(2αβ)·sin(α(a−b))·sinh(βb)
+      </span>
     </div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>1D Band Structure E(k)</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>1D Band Structure E(k)
+        </div>
         <div class="plot-inner">{{ kp1d | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Band Map vs Barrier Height</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Band Map vs Barrier Height
+        </div>
         <div class="plot-inner">{{ kp2d | safe }}</div>
       </div>
     </div>
     <div class="plot-grid">
       <div class="plot-card plot-card-full">
-        <div class="plot-card-title"><span class="pct-dot"></span>3D Band Structure E(kx, ky)</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>3D Band Structure E(k<sub>x</sub>, k<sub>y</sub>)
+        </div>
         <div class="plot-inner">{{ kp3d | safe }}</div>
       </div>
     </div>
 
-    <!-- ── LATTICE & PHONONS ── -->
-    <div class="section-header">Lattice Dynamics & Phonons</div>
+    <!-- ══════════════════════════════════════
+         6. BRILLOUIN ZONES  (1st – 10th)
+    ══════════════════════════════════════ -->
+    <div class="section-header">Brillouin Zones — 1<sup>st</sup> through 10<sup>th</sup></div>
+    <div class="eq-strip">
+      <span class="eq">
+        BZ<sub>n</sub> = { k : k crosses exactly n−1 Bragg planes from Γ }
+      </span>
+      <span>Area(BZ<sub>n</sub>) = Area(recip. unit cell) &nbsp;∀ n</span>
+    </div>
+
+    <!-- BZ Control Panel -->
+    <div style="background:var(--bg-2);border:1px solid var(--border);
+                border-radius:var(--r);padding:1.25rem 1.5rem;
+                margin-bottom:1.1rem;
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+                gap:1.25rem 1.5rem;">
+
+      <!-- Lattice type selector -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-2);
+                    letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.5rem;">
+          Lattice Type
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          {% for lt in ['square','rectangular','hexagonal'] %}
+          <button type="button"
+                  class="bz-lattice-btn{% if lt == 'square' %} bz-lat-active{% endif %}"
+                  data-lattice="{{ lt }}">
+            {{ lt|capitalize }}
+          </button>
+          {% endfor %}
+        </div>
+        <!-- Hidden input carries value to AJAX -->
+        <input type="hidden" id="bz-lattice-val" value="square">
+      </div>
+
+      <!-- a slider + number -->
+      <div>
+        <div class="param-label" style="margin-bottom:0.35rem;">
+          <span class="pname">Lattice a (Å)</span>
+          <input type="number" class="param-num-input" id="bz-a-num"
+                 value="1.0" min="0.1" max="10" step="0.1"
+                 onchange="syncBZ('a', parseFloat(this.value))">
+        </div>
+        <input type="range" id="bz-a-range"
+               min="0.1" max="10" step="0.1" value="1.0"
+               oninput="syncBZ('a', parseFloat(this.value))"
+               style="width:100%;">
+        <div class="range-bounds"><span>0.1 Å</span><span>10 Å</span></div>
+      </div>
+
+      <!-- b slider + number (rectangular only) -->
+      <div id="bz-b-ctrl" style="opacity:0.3;pointer-events:none;transition:opacity 0.2s;">
+        <div class="param-label" style="margin-bottom:0.35rem;">
+          <span class="pname">Lattice b (Å)</span>
+          <input type="number" class="param-num-input" id="bz-b-num"
+                 value="1.5" min="0.1" max="10" step="0.1"
+                 onchange="syncBZ('b', parseFloat(this.value))">
+        </div>
+        <input type="range" id="bz-b-range"
+               min="0.1" max="10" step="0.1" value="1.5"
+               oninput="syncBZ('b', parseFloat(this.value))"
+               style="width:100%;">
+        <div class="range-bounds"><span>0.1 Å</span><span>10 Å</span></div>
+      </div>
+
+      <!-- Hex angle (hexagonal only) -->
+      <div id="bz-angle-ctrl" style="opacity:0.3;pointer-events:none;transition:opacity 0.2s;">
+        <div class="param-label" style="margin-bottom:0.35rem;">
+          <span class="pname">Lattice angle (°)</span>
+          <input type="number" class="param-num-input" id="bz-angle-num"
+                 value="120" min="60" max="150" step="5"
+                 onchange="syncBZ('angle', parseFloat(this.value))">
+        </div>
+        <input type="range" id="bz-angle-range"
+               min="60" max="150" step="5" value="120"
+               oninput="syncBZ('angle', parseFloat(this.value))"
+               style="width:100%;">
+        <div class="range-bounds"><span>60°</span><span>150°</span></div>
+      </div>
+
+      <!-- Number of zones -->
+      <div>
+        <div class="param-label" style="margin-bottom:0.35rem;">
+          <span class="pname">Zones to show</span>
+          <input type="number" class="param-num-input" id="bz-zones-num"
+                 value="4" min="1" max="10" step="1"
+                 onchange="syncBZ('zones', parseInt(this.value))">
+        </div>
+        <input type="range" id="bz-zones-range"
+               min="1" max="10" step="1" value="4"
+               oninput="syncBZ('zones', parseInt(this.value))"
+               style="width:100%;">
+        <div class="range-bounds"><span>1<sup>st</sup></span><span>10<sup>th</sup></span></div>
+        <!-- Zone color legend -->
+        <div id="bz-legend"
+             style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
+      </div>
+
+      <!-- Render button -->
+      <div style="display:flex;align-items:flex-end;">
+        <button type="button" id="bz-render-btn" onclick="renderBZ()"
+                class="btn-compute" style="margin-top:0;">
+          ⟳ Render Zones
+        </button>
+      </div>
+    </div>
+
+    <!-- BZ Plot -->
+    <div class="plot-card plot-card-full">
+      <div class="plot-card-title">
+        <span class="pct-dot"></span>
+        <span id="bz-plot-title">Brillouin Zones — Square Lattice (4 zones, default)</span>
+        <span id="bz-status"
+              style="margin-left:auto;font-family:var(--font-mono);
+                     font-size:0.57rem;color:var(--text-3);"></span>
+      </div>
+      <div class="plot-inner" id="bz-plot-container" style="min-height:440px;">
+        {{ bz_plot | safe }}
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         7. LATTICE DYNAMICS & PHONONS
+    ══════════════════════════════════════ -->
+    <div class="section-header">Lattice Dynamics &amp; Phonons</div>
     <div class="plot-grid">
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Phonon Dispersion (1D Diatomic)</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Phonon Dispersion (1D Diatomic Chain)
+        </div>
         <div class="plot-inner">{{ phonon | safe }}</div>
       </div>
       <div class="plot-card">
-        <div class="plot-card-title"><span class="pct-dot"></span>Real & Reciprocal Lattice (3D)</div>
+        <div class="plot-card-title">
+          <span class="pct-dot"></span>Real &amp; Reciprocal Lattice (3D)
+        </div>
         <div class="plot-inner">{{ recip | safe }}</div>
       </div>
     </div>
 
   </main>
-</div>
+</div><!-- /.app-layout -->
 
-<!-- FOOTER -->
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
 <footer class="site-footer">
   SEMICONDUCTOR PHYSICS TOOL &nbsp;·&nbsp;
-  Flask + NumPy + Plotly &nbsp;·&nbsp;
+  Flask + NumPy + SciPy + Plotly + Shapely &nbsp;·&nbsp;
+  <a href="/about">About &amp; Summary</a> &nbsp;·&nbsp;
   <a href="/contact">Contact</a>
 </footer>
 
+<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
 <script src="{{ url_for('static', filename='circuit.js') }}"></script>
+<script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+
 <script>
-// ── Slider helpers ─────────────────────────────────────────
-function updateSlider(el, labelId, fmt, unit='') {
-  const v   = parseFloat(el.value);
-  const lbl = document.getElementById(labelId);
+/* ════════════════════════════════════════════════════════════
+   SIDEBAR SLIDER + NUMBER INPUT SYNC
+════════════════════════════════════════════════════════════ */
+
+/**
+ * updateSlider — called by range oninput
+ * Updates the sibling number input and CSS fill gradient.
+ */
+function updateSlider(rangeEl, numId, fmt, unit) {
+  const v   = parseFloat(rangeEl.value);
+  const num = document.getElementById(numId);
+  if (num) num.value = formatVal(v, fmt, unit);
+  updateRangeFill(rangeEl);
+}
+
+/**
+ * syncNum — called by number input onchange
+ * Clamps value, writes to hidden form field (range), updates fill.
+ */
+function syncNum(rangeId, rawVal, fmt, unit) {
+  const range = document.getElementById(rangeId);
+  if (!range) return;
+  const v   = Math.min(Math.max(parseFloat(rawVal) || 0,
+                                parseFloat(range.min)),
+                       parseFloat(range.max));
+  range.value = v;
+  // keep number input clean
+  const num = document.getElementById('num-' + rangeId);
+  if (num) num.value = formatVal(v, fmt, unit);
+  updateRangeFill(range);
+}
+
+/** tau is stored in seconds, displayed in fs */
+function syncNumTau(fsParsed) {
+  const fs  = Math.min(Math.max(parseFloat(fsParsed) || 0.1, 0.1), 100);
+  const s   = fs * 1e-15;
+  const range = document.getElementById('tau');
+  if (range) { range.value = s; updateRangeFill(range); }
+  const num = document.getElementById('num-tau');
+  if (num) num.value = fs.toFixed(2);
+}
+
+/** lattice constants: range in metres, input in Å */
+function syncNumAngstrom(rangeId, angVal) {
+  const ang   = Math.min(Math.max(parseFloat(angVal) || 1,
+                                  parseFloat(document.getElementById(rangeId).min) * 1e10),
+                          parseFloat(document.getElementById(rangeId).max) * 1e10);
+  const metres = ang * 1e-10;
+  const range  = document.getElementById(rangeId);
+  range.value  = metres;
+  const num    = document.getElementById('num-' + rangeId);
+  if (num) num.value = ang.toFixed(1);
+  updateRangeFill(range);
+}
+
+function formatVal(v, fmt, unit) {
   let txt;
   if      (fmt === 'sci')      txt = v.toExponential(2);
-  else if (fmt === 'fix1')     txt = v.toFixed(1) + (unit ? ' '+unit : '');
-  else if (fmt === 'fix3')     txt = v.toFixed(3) + (unit ? ' '+unit : '');
-  else if (fmt === 'int')      txt = Math.round(v) + (unit ? ' '+unit : '');
-  else if (fmt === 'tau')      txt = (v*1e15).toFixed(2) + ' fs';
-  else if (fmt === 'angstrom') txt = (v*1e10).toFixed(1) + ' Å';
-  else txt = v;
-  lbl.textContent = txt;
-  // Update CSS gradient fill
+  else if (fmt === 'fix1')     txt = v.toFixed(1);
+  else if (fmt === 'fix3')     txt = v.toFixed(3);
+  else if (fmt === 'int')      txt = String(Math.round(v));
+  else if (fmt === 'tau')      txt = (v * 1e15).toFixed(2);
+  else if (fmt === 'angstrom') txt = (v * 1e10).toFixed(1);
+  else txt = String(v);
+  return txt;
+}
+
+function updateRangeFill(el) {
   const min = parseFloat(el.min), max = parseFloat(el.max);
-  const pct = ((v - min)/(max - min)*100).toFixed(1)+'%';
+  const pct = ((parseFloat(el.value) - min) / (max - min) * 100).toFixed(1) + '%';
   el.style.setProperty('--pct', pct);
 }
-// Init all sliders on load
-document.querySelectorAll('input[type=range]').forEach(el => {
-  const fmt = el.getAttribute('oninput').match(/'([^']+)'/g);
-  if (fmt && fmt.length > 0) {
-    const f = fmt[0].replace(/'/g,'');
-    const u = fmt[1] ? fmt[1].replace(/'/g,'') : '';
-    updateSlider(el, 'lbl-'+el.id, f, u);
-  }
+
+/* Init fills and number inputs on page load */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[type=range]').forEach(el => {
+    updateRangeFill(el);
+  });
 });
+
+
+/* ════════════════════════════════════════════════════════════
+   BRILLOUIN ZONE INTERACTIVE CONTROLS
+════════════════════════════════════════════════════════════ */
+
+const BZ_COLORS = [
+  '#00f0ff','#00ff9d','#ffb800','#ff3e8a',
+  '#9b5de5','#4cc9f0','#f72585','#7bed9f',
+  '#ffd32a','#e040fb'
+];
+
+let bzState = {
+  lattice: 'square',
+  a:       1.0,
+  b:       1.5,
+  angle:   120,
+  zones:   4
+};
+
+/** Central sync for all BZ parameters */
+function syncBZ(param, val) {
+  if (param === 'a') {
+    bzState.a = Math.min(Math.max(val, 0.1), 10);
+    document.getElementById('bz-a-range').value = bzState.a;
+    document.getElementById('bz-a-num').value   = bzState.a.toFixed(1);
+    updateRangeFill(document.getElementById('bz-a-range'));
+  } else if (param === 'b') {
+    bzState.b = Math.min(Math.max(val, 0.1), 10);
+    document.getElementById('bz-b-range').value = bzState.b;
+    document.getElementById('bz-b-num').value   = bzState.b.toFixed(1);
+    updateRangeFill(document.getElementById('bz-b-range'));
+  } else if (param === 'angle') {
+    bzState.angle = Math.min(Math.max(val, 60), 150);
+    document.getElementById('bz-angle-range').value = bzState.angle;
+    document.getElementById('bz-angle-num').value   = bzState.angle.toFixed(0);
+    updateRangeFill(document.getElementById('bz-angle-range'));
+  } else if (param === 'zones') {
+    bzState.zones = Math.min(Math.max(Math.round(val), 1), 10);
+    document.getElementById('bz-zones-range').value = bzState.zones;
+    document.getElementById('bz-zones-num').value   = bzState.zones;
+    updateRangeFill(document.getElementById('bz-zones-range'));
+    buildBZLegend();
+  }
+}
+
+/** Build color-coded zone legend */
+function buildBZLegend() {
+  const leg = document.getElementById('bz-legend');
+  leg.innerHTML = '';
+  for (let i = 0; i < bzState.zones; i++) {
+    const c = BZ_COLORS[i % BZ_COLORS.length];
+    const span = document.createElement('span');
+    span.style.cssText = `
+      font-family:'Space Mono',monospace;font-size:0.57rem;
+      padding:2px 8px;border-radius:10px;
+      border:1px solid ${c}55;color:${c};
+      background:${c}14;
+    `;
+    span.textContent = `Z${i + 1}`;
+    leg.appendChild(span);
+  }
+}
+
+/** Wire up lattice-type buttons */
+document.addEventListener('DOMContentLoaded', () => {
+
+  buildBZLegend();
+
+  // Init BZ range fills
+  ['bz-a-range','bz-b-range','bz-angle-range','bz-zones-range'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) updateRangeFill(el);
+  });
+
+  document.querySelectorAll('.bz-lattice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+
+      // Update active styling
+      document.querySelectorAll('.bz-lattice-btn').forEach(b => {
+        b.classList.remove('bz-lat-active');
+      });
+      btn.classList.add('bz-lat-active');
+
+      bzState.lattice = btn.dataset.lattice;
+      document.getElementById('bz-lattice-val').value = bzState.lattice;
+
+      // Show/hide dependent controls
+      const isRect = bzState.lattice === 'rectangular';
+      const isHex  = bzState.lattice === 'hexagonal';
+
+      const bCtrl     = document.getElementById('bz-b-ctrl');
+      const angleCtrl = document.getElementById('bz-angle-ctrl');
+      bCtrl.style.opacity       = isRect ? '1'    : '0.3';
+      bCtrl.style.pointerEvents = isRect ? 'auto' : 'none';
+      angleCtrl.style.opacity       = isHex ? '1'    : '0.3';
+      angleCtrl.style.pointerEvents = isHex ? 'auto' : 'none';
+    });
+  });
+});
+
+/** Fire AJAX request to /api/bz and inject result */
+function renderBZ() {
+  const btn    = document.getElementById('bz-render-btn');
+  const status = document.getElementById('bz-status');
+  const cont   = document.getElementById('bz-plot-container');
+  const title  = document.getElementById('bz-plot-title');
+
+  btn.textContent    = '⏳ Computing…';
+  btn.style.opacity  = '0.65';
+  btn.disabled       = true;
+  status.textContent = 'calculating…';
+
+  fetch('/api/bz', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(bzState)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.plot) {
+      cont.innerHTML = data.plot;
+
+      // Re-execute any inline <script> tags Plotly injected
+      cont.querySelectorAll('script').forEach(orig => {
+        const ns = document.createElement('script');
+        ns.textContent = orig.textContent;
+        document.body.appendChild(ns);
+        ns.remove();
+      });
+
+      const capLat = bzState.lattice.charAt(0).toUpperCase() + bzState.lattice.slice(1);
+      title.textContent  = `Brillouin Zones — ${capLat} Lattice`;
+      const zWord        = bzState.zones === 1 ? 'zone' : 'zones';
+      status.textContent = `${bzState.zones} ${zWord} rendered ✓`;
+      status.style.color = 'var(--green)';
+
+    } else {
+      status.textContent = 'Error: ' + (data.error || 'unknown');
+      status.style.color = 'var(--pink)';
+    }
+  })
+  .catch(err => {
+    status.textContent = 'Network error — is Flask running?';
+    status.style.color = 'var(--pink)';
+    console.error(err);
+  })
+  .finally(() => {
+    btn.textContent   = '⟳ Render Zones';
+    btn.style.opacity = '1';
+    btn.disabled      = false;
+  });
+}
+
 </script>
+
+<!-- ── BZ button styles (inline so they need no extra CSS file edit) ── -->
+<style>
+  .bz-lattice-btn {
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    padding: 5px 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    background: var(--bg-1);
+    transition: all 0.18s;
+    letter-spacing: 0.06em;
+  }
+  .bz-lattice-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: #00f0ff0d;
+  }
+  .bz-lattice-btn.bz-lat-active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: #00f0ff12;
+    box-shadow: 0 0 8px #00f0ff33;
+  }
+  /* Number inputs in sidebar */
+  .param-num-input {
+    width: 76px;
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 0.67rem;
+    padding: 2px 6px;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.2s;
+    /* hide browser spin arrows */
+    -moz-appearance: textfield;
+  }
+  .param-num-input::-webkit-outer-spin-button,
+  .param-num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .param-num-input:focus { border-color: var(--cyan); }
+</style>
+
 </body>
 </html>
