@@ -14,3 +14,11 @@ Ideal for students, educators, and researchers in semiconductor physics, condens
 Contact: sankalpahota503@gmail.com
 LinkedIn: https://www.linkedin.com/in/sankalpa-hota-86937517a/
 
+Deployment (Render.com)
+- Python version: .python-version at repo root (not runtime.txt).
+- Start Command must be production WSGI, NOT "python main.py". Use either:
+    bash start.sh
+  or (equivalent):
+    sh -c 'exec gunicorn --bind 0.0.0.0:${PORT} --workers 1 --timeout 180 --graceful-timeout 60 main:app'
+  The dashboard Start Command overrides Procfile; leave it empty only if your stack auto-reads Procfile.
+
