@@ -17,6 +17,8 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
 CACHE_TTL    = 3600          # seconds before re-fetching a source
 MAX_CHUNKS   = 6             # top-k chunks to inject into prompt
 CHUNK_SIZE   = 400           # words per chunk
+MAX_CHAT_MSG = 8000          # guardrail for request size / retrieval cost
+MAX_HISTORY  = 24          # last N user/assistant turns kept from client payload
 
 # ── Source catalogue (evergreen — APIs + stable reference URLs) ─
 TOPIC_SOURCES = {
@@ -643,6 +645,11 @@ def chat():
     data    = request.get_json() or {}
     message = data.get('message', '').strip()
     history = data.get('history', [])
+    if not isinstance(history, list):
+        history = []
+    history = history[-MAX_HISTORY:]
+    if len(message) > MAX_CHAT_MSG:
+        return jsonify({'error': 'Message too long'}), 400
     if not message:
         return jsonify({'error': 'No message provided'}), 400
     try:
