@@ -1,4 +1,4 @@
-Interactive Semiconductor Physics Simulator
+OPEN-Quantum — Interactive Semiconductor Physics Simulator
 This project allows users to explore key semiconductor physics concepts interactively through a web interface. It supports calculations and visualizations for:
 
 - Fermi levels in intrinsic and doped semiconductors

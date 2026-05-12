@@ -1,6 +1,6 @@
-# Semiconductor Physics Interactive Simulation Tool
+# OPEN-Quantum
 
-This project is a web application built with Flask, Plotly, and Python. You can explore semiconductor models through the browser: change parameters and see plots update.
+OPEN-Quantum is a web application built with Flask, Plotly, and Python. You can explore semiconductor models through the browser: change parameters and see plots update.
 
 It covers topics such as:
 
@@ -23,7 +23,7 @@ https://github.com/Sankalpa-Hota/semiconductor-physics-tool
 ## Features
 
 - Web interface for editing simulation inputs
-- Plotly charts are optional: tick only the plots you need in the sidebar, then click **Compute**. This keeps CPU and RAM low on small hosting plans.
+- Each chart has **Render this** / **Close this** controls; only open figures are generated on **Compute parameters**, which keeps CPU and RAM low on small hosting plans.
 - Physics-oriented defaults (silicon-oriented starting parameters)
 - Suited for teaching and self-study
 

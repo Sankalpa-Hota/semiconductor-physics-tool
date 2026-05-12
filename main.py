@@ -4,6 +4,7 @@ from brillouin_zones import plot_brillouin_zones
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import plot
+from plotly.subplots import make_subplots
 import os
 
 import fermi_boltzmann as fb
@@ -79,20 +80,168 @@ PLOT_KEYS = frozenset({
     'iv', 'schot', 'hall', 'depl',
     'kp1d', 'kp2d', 'kp3d',
     'bz_plot', 'phonon', 'recip',
+    'ek_comp', 'pn_x', 'dos_qw', 'tauc', 'sdh',
 })
 
 PLOT_PLACEHOLDER = (
     "<div class=\"plot-placeholder\">"
-    "<p><strong>Not rendered.</strong> Tick this chart under "
-    "<em>Plots to render</em> in the sidebar, then click "
-    "<strong>Compute</strong>.</p>"
-    "<p class=\"plot-ph-hint\">Skipping charts keeps memory use low on shared hosting.</p>"
+    "<p><strong>Plot closed.</strong> Click <strong>Render this</strong> above "
+    "to generate this figure from the current parameters.</p>"
+    "<p class=\"plot-ph-hint\">Keeping plots closed saves memory on small hosting plans.</p>"
     "</div>"
 )
 
+# One default open figure per multi-plot section (plus single-plot sections).
+DEFAULT_OPEN_PLOTS = frozenset({
+    'fd', 'ni_T', 'ef_dop', 'iv', 'ek_comp', 'kp1d', 'bz_plot', 'phonon',
+})
 
-def parse_selected_plots(form):
-    return frozenset(k for k in form.getlist('plots') if k in PLOT_KEYS)
+
+def parse_open_plots(form):
+    """Comma-separated keys from the hidden field; POST may send '' if all closed."""
+    raw = form.get('open_plots')
+    if raw is None:
+        return frozenset(DEFAULT_OPEN_PLOTS)
+    raw = raw.strip()
+    if not raw:
+        return frozenset()
+    return frozenset(k.strip() for k in raw.split(',') if k.strip() in PLOT_KEYS)
+
+
+def simulation_context(
+    Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0_m, b_m,
+    bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+):
+    Ec = 0.0
+    Ev = -Eg
+    V0_J = V0_m * eV
+    m_eff = m_eff_ratio * m0
+    ni = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
+    Ef = fb.fermi_level_n_type(Ec, Nd, ni, T)
+    n, p = fb.carrier_concentration(Ef, Ec, Ev, Nc, Nv, T)
+    mu = dm.mobility_drude(tau, m_eff) * 1e4
+    sigma = dm.conductivity(n, mu)
+    l_mfp = dm.mean_free_path(vF, tau)
+    return {
+        'Nc': Nc, 'Nv': Nv, 'Eg': Eg, 'Nd': Nd, 'T': T,
+        'tau': tau, 'vF': vF, 'm_eff_ratio': m_eff_ratio,
+        'a': a, 'V0': V0_m, 'b': b_m, 'V0_J': V0_J,
+        'bz_lattice': bz_lattice, 'bz_a': bz_a, 'bz_b': bz_b,
+        'bz_angle': bz_angle, 'bz_zones': bz_zones,
+        'Ec': Ec, 'Ev': Ev, 'ni': ni, 'Ef': Ef, 'n': n, 'p': p,
+        'mu': mu, 'sigma': sigma, 'l_mfp': l_mfp,
+    }
+
+
+def render_plot_html(plot_key, ctx):
+    """Return Plotly div (or error HTML) for a single key."""
+    k = plot_key
+    if k == 'fd':
+        return plt_fermi_dirac(ctx['Ef'], ctx['T'])
+    if k == 'dos':
+        return plt_dos(
+            ctx['m_eff_ratio'], ctx['Ec'], ctx['Ev'], ctx['T'], ctx['Ef'])
+    if k == 'ni_T':
+        return plt_ni_vs_T(ctx['Nc'], ctx['Nv'], ctx['Eg'])
+    if k == 'mu_T':
+        return plt_mobility_vs_T(ctx['Nd'])
+    if k == 'carr_T':
+        return plt_carrier_vs_T(ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['Nd'])
+    if k == 'cond_T':
+        return plt_conductivity_vs_T(ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['Nd'])
+    if k == 'ef_dop':
+        return plt_ef_vs_doping(ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['T'])
+    if k == 'band':
+        return plt_band_diagram(
+            ctx['Ef'], ctx['Ec'], ctx['Ev'], ctx['Eg'])
+    if k == 'rho_dop':
+        return plt_resistivity_vs_doping()
+    if k == 'eg_T':
+        return plt_bandgap_vs_T(ctx['Eg'])
+    if k == 'kp1d':
+        return plt_kp_1d(ctx['a'], ctx['V0_J'], ctx['b'])
+    if k == 'kp2d':
+        return plt_kp_2d(ctx['a'], ctx['V0_J'], ctx['b'])
+    if k == 'kp3d':
+        return plt_kp_3d(ctx['a'], ctx['V0_J'], ctx['b'])
+    if k == 'recip':
+        return plt_reciprocal_lattice()
+    if k == 'hall':
+        return plt_hall(ctx['Nc'], ctx['Nv'], ctx['Eg'], ctx['Nd'])
+    if k == 'iv':
+        return plt_iv_diode(ctx['T'], ctx['Eg'])
+    if k == 'schot':
+        return plt_schottky(ctx['Eg'])
+    if k == 'phonon':
+        return plt_phonon()
+    if k == 'depl':
+        return plt_depletion(ctx['Nc'], ctx['Nd'], ctx['Eg'])
+    if k == 'ek_comp':
+        return plt_ek_compare(ctx['Eg'])
+    if k == 'pn_x':
+        return plt_pn_junction_bands(ctx['Eg'])
+    if k == 'dos_qw':
+        return plt_dos_qw_2d(ctx['m_eff_ratio'], L_nm=12.0)
+    if k == 'tauc':
+        return plt_tauc(ctx['Eg'])
+    if k == 'sdh':
+        return plt_sdh()
+    if k == 'bz_plot':
+        return plot_brillouin_zones(
+            lattice=ctx['bz_lattice'], a=ctx['bz_a'], b=ctx['bz_b'],
+            angle=ctx['bz_angle'], n_zones=ctx['bz_zones'])
+    return PLOT_PLACEHOLDER
+
+
+def _float_param(data, key, default):
+    if key not in data or data[key] is None or data[key] == '':
+        return float(default)
+    return float(data[key])
+
+
+def context_from_api_payload(data):
+    """Build simulation_context from JSON (same keys as the main form)."""
+    Nc = 2.8e19
+    Nv = 1.04e19
+    Eg = 1.12
+    Nd = 1e17
+    T = 300.0
+    tau = 0.24e-15
+    vF = 1e6
+    m_eff_ratio = 0.26
+    a = 5e-10
+    V0_m = 10.0
+    b_m = 2e-10
+    bz_lattice = 'square'
+    bz_a, bz_b, bz_angle, bz_zones = 1.0, 1.5, 120.0, 4
+
+    Nc = _float_param(data, 'Nc', Nc)
+    Nv = _float_param(data, 'Nv', Nv)
+    Eg = _float_param(data, 'Eg', Eg)
+    Nd = _float_param(data, 'Nd', Nd)
+    T = _float_param(data, 'T', T)
+    tau = _float_param(data, 'tau', tau)
+    vF = _float_param(data, 'vF', vF)
+    m_eff_ratio = _float_param(data, 'm_eff', m_eff_ratio)
+    a = _float_param(data, 'a', a)
+    V0_m = _float_param(data, 'V0', V0_m)
+    b_m = _float_param(data, 'b', b_m)
+    bz_a = _float_param(data, 'bz_a', bz_a)
+    bz_b = _float_param(data, 'bz_b', bz_b)
+    bz_angle = _float_param(data, 'bz_angle', bz_angle)
+    try:
+        bz_zones = int(round(float(data.get('bz_zones', bz_zones))))
+    except (TypeError, ValueError):
+        bz_zones = 4
+    bz_zones = max(1, min(10, bz_zones))
+    lat = data.get('bz_lattice', bz_lattice)
+    if isinstance(lat, str) and lat in BZ_LATTICES:
+        bz_lattice = lat
+
+    return simulation_context(
+        Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0_m, b_m,
+        bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+    )
 
 
 def _n(num):
@@ -532,6 +681,141 @@ def plt_depletion(Nc, Nd, Eg):
     return pplot(fig)
 
 
+def plt_ek_compare(Eg=1.12):
+    """Schematic E(k): direct gap (Γ–Γ) vs indirect (Γ–Δ) for teaching."""
+    k = np.linspace(-1.0, 1.0, _n(360))
+    kin = 0.78
+    scale_cb = Eg * 0.22
+    scale_vb = Eg * 0.18
+    Ev_dir = -Eg / 2.0 - scale_vb * k**2
+    Ec_dir = Eg / 2.0 + scale_cb * k**2
+    Ev_ind = Ev_dir.copy()
+    Ec_ind = Eg / 2.0 + scale_cb * 2.2 * (k - kin) ** 2 + 0.06 * Eg
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=(
+            'Direct gap (e.g. GaAs)',
+            'Indirect gap (e.g. Si)',
+        ),
+        horizontal_spacing=0.08,
+    )
+    for col, Ev, Ec in ((1, Ev_dir, Ec_dir), (2, Ev_ind, Ec_ind)):
+        fig.add_trace(
+            go.Scatter(x=k, y=Ev, mode='lines', name='Valence band' if col == 1 else None,
+                       legendgroup='v', showlegend=(col == 1),
+                       line=dict(color=COLORS[3], width=2.5)),
+            row=1, col=col,
+        )
+        fig.add_trace(
+            go.Scatter(x=k, y=Ec, mode='lines', name='Conduction band' if col == 1 else None,
+                       legendgroup='c', showlegend=(col == 1),
+                       line=dict(color=COLORS[0], width=2.5)),
+            row=1, col=col,
+        )
+    fig.update_xaxes(title_text='k (relative to zone edge)', gridcolor='#1a2840',
+                     linecolor='#1a2840', tickfont=dict(size=9), zerolinecolor='#1a2840')
+    fig.update_yaxes(title_text='Energy (eV)', gridcolor='#1a2840',
+                     linecolor='#1a2840', tickfont=dict(size=9), zerolinecolor='#1a2840')
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(10,15,26,1)',
+        font=dict(family='Space Mono, monospace', color='#6a8aaa', size=10),
+        margin=dict(l=55, r=18, t=56, b=50),
+        title=dict(text='Energy band structure E(k)', font=dict(size=11, color='#2e4460'), x=0.02),
+        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='#1a2840', borderwidth=1,
+                    font=dict(size=9)),
+    )
+    return pplot(fig)
+
+
+def plt_pn_junction_bands(Eg=1.12):
+    """Equilibrium Ec, Ev across a p–n junction (schematic band bending)."""
+    x = np.linspace(-3.0, 3.0, _n(480))
+    W = 0.38
+    tran = 0.5 * (1.0 + np.tanh(x / W))
+    Ec_n, Ec_p = 0.02, Eg * 0.65 + 0.15
+    Ev_n, Ev_p = -Eg + 0.02, -0.04
+    Ec = Ec_n + (Ec_p - Ec_n) * tran
+    Ev = Ev_n + (Ev_p - Ev_n) * tran
+    Ei = 0.5 * (Ec + Ev)
+    Ef = -0.18
+
+    fig = go.Figure(layout=make_layout('P–N junction: built-in field & band bending'))
+    fig.add_trace(go.Scatter(x=x, y=Ec, mode='lines', name='Ec',
+                             line=dict(color=COLORS[0], width=2.5)))
+    fig.add_trace(go.Scatter(x=x, y=Ev, mode='lines', name='Ev',
+                             line=dict(color=COLORS[3], width=2.5)))
+    fig.add_trace(go.Scatter(x=x, y=Ei, mode='lines', name='Ei (intrinsic)',
+                             line=dict(color='rgba(255,255,255,0.2)', width=1, dash='dot')))
+    fig.add_hline(y=Ef, line=dict(color=COLORS[2], dash='dash', width=1.4),
+                  annotation_text='Ef (equilibrium)', annotation_font=dict(size=8, color='#ffb800'))
+    fig.add_vline(x=0, line=dict(color='rgba(255,255,255,0.09)', width=1))
+    fig.update_layout(xaxis_title='Position x (arb. units, n-side ← | → p-side)',
+                      yaxis_title='Energy (eV)')
+    return pplot(fig)
+
+
+def plt_dos_qw_2d(m_eff_ratio, L_nm=12.0):
+    """2D density of states staircase for a quantum well (particle-in-a-box subbands)."""
+    m = max(float(m_eff_ratio), 0.01) * m0
+    L = max(float(L_nm) * 1e-9, 5e-10)
+    n_max = 10
+    ns = np.arange(1, n_max + 1, dtype=float)
+    En = (hbar * np.pi * ns / L) ** 2 / (2.0 * m) / eV
+    emax = max(float(En[-1]) * 1.15, 0.2)
+    E = np.linspace(-0.02, emax, _n(900))
+    const = m / (np.pi * hbar ** 2) * 1e-17
+    dos = np.zeros_like(E)
+    for e_n in En:
+        dos += (E >= e_n).astype(float) * const
+
+    fig = go.Figure(layout=make_layout('2D density of states in a quantum well (staircase)'))
+    fig.add_trace(go.Scatter(
+        x=E, y=dos, mode='lines', name='g2D(E)',
+        line=dict(color=COLORS[1], width=2.2),
+        line_shape='hv'))
+    for i, e_n in enumerate(En):
+        fig.add_vline(x=e_n, line=dict(color='rgba(0,240,255,0.25)', width=1, dash='dot'),
+                      annotation_text=f'n={int(ns[i])}' if i < 4 else None,
+                      annotation_font=dict(size=7, color='#6a8aaa'))
+    fig.update_layout(xaxis_title='E above well bottom (eV)', yaxis_title='g2D (scaled, arb.)')
+    return pplot(fig)
+
+
+def plt_tauc(Eg=1.12):
+    """Tauc plot: (αhν)² vs hν for a direct allowed transition (illustrative)."""
+    hnu = np.linspace(max(0.1, Eg - 0.5), Eg + 2.2, _n(500))
+    A = 1.2e5
+    root = np.sqrt(np.maximum(hnu - Eg, 0.0))
+    alpha = A * root / np.maximum(hnu, 1e-6)
+    alpha += 180.0 * np.exp((hnu - Eg) / 0.06) * (hnu < Eg)
+    y_tauc = (alpha * hnu) ** 2
+
+    fig = go.Figure(layout=make_layout('Tauc plot — (α·hν)² vs photon energy (direct gap)'))
+    fig.add_trace(go.Scatter(x=hnu, y=y_tauc, mode='lines', name='(α·hν)²',
+                             line=dict(color=COLORS[4], width=2.2),
+                             fill='tozeroy', fillcolor='rgba(155,93,229,0.06)'))
+    fig.add_vline(x=Eg, line=dict(color='rgba(255,184,0,0.45)', dash='dash', width=1),
+                  annotation_text=f'Eg ≈ {Eg:.2f} eV', annotation_font=dict(size=8, color='#ffb800'))
+    fig.update_layout(xaxis_title='hν (eV)', yaxis_title='(α·hν)² (arb.)')
+    return pplot(fig)
+
+
+def plt_sdh():
+    """Illustrative Shubnikov–de Haas: longitudinal resistance oscillations vs B."""
+    B = np.linspace(0.35, 7.0, _n(550))
+    F = 52.0
+    dingle = np.exp(-0.22 / np.maximum(B, 0.06))
+    R = 1200.0 * (1.0 + 0.045 * dingle * np.cos(2.0 * np.pi * F / B + 0.3))
+
+    fig = go.Figure(layout=make_layout('Shubnikov–de Haas (illustrative R vs B)'))
+    fig.add_trace(go.Scatter(x=B, y=R, mode='lines', name='R_xx',
+                             line=dict(color=COLORS[5], width=1.8)))
+    fig.update_layout(xaxis_title='B (T)', yaxis_title='R_xx (Ω, scaled model)')
+    return pplot(fig)
+
+
 # Routes
 
 @app.route('/', methods=['GET', 'POST'])
@@ -572,74 +856,32 @@ def home():
         bz_b        = gf(request.form, 'bz_b',     bz_b)
         bz_angle    = gf(request.form, 'bz_angle', bz_angle)
         bz_zones    = gi(request.form, 'bz_zones', bz_zones, lo=1, hi=10)
-        selected = parse_selected_plots(request.form)
+        open_plots = parse_open_plots(request.form)
     else:
-        selected = frozenset()
+        open_plots = frozenset(DEFAULT_OPEN_PLOTS)
 
-    Ec    = 0.0
-    Ev    = -Eg
-    V0_J  = V0 * eV
-    m_eff = m_eff_ratio * m0
-
-    ni    = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
-    Ef    = fb.fermi_level_n_type(Ec, Nd, ni, T)
-    n, pp = fb.carrier_concentration(Ef, Ec, Ev, Nc, Nv, T)
-    mu    = dm.mobility_drude(tau, m_eff) * 1e4
-    sigma = dm.conductivity(n, mu)
-    l_mfp = dm.mean_free_path(vF, tau)
+    ctx = simulation_context(
+        Nc, Nv, Eg, Nd, T, tau, vF, m_eff_ratio, a, V0, b,
+        bz_lattice, bz_a, bz_b, bz_angle, bz_zones,
+    )
+    ni = ctx['ni']
+    Ef = ctx['Ef']
+    n, pp = ctx['n'], ctx['p']
+    mu = ctx['mu']
+    sigma = ctx['sigma']
+    l_mfp = ctx['l_mfp']
 
     def build_plots():
-        """Generate only figures the user requested."""
         out = {}
-        if 'fd' in selected:
-            out['fd'] = plt_fermi_dirac(Ef, T)
-        if 'dos' in selected:
-            out['dos'] = plt_dos(m_eff_ratio, Ec, Ev, T, Ef)
-        if 'ni_T' in selected:
-            out['ni_T'] = plt_ni_vs_T(Nc, Nv, Eg)
-        if 'mu_T' in selected:
-            out['mu_T'] = plt_mobility_vs_T(Nd)
-        if 'carr_T' in selected:
-            out['carr_T'] = plt_carrier_vs_T(Nc, Nv, Eg, Nd)
-        if 'cond_T' in selected:
-            out['cond_T'] = plt_conductivity_vs_T(Nc, Nv, Eg, Nd)
-        if 'ef_dop' in selected:
-            out['ef_dop'] = plt_ef_vs_doping(Nc, Nv, Eg, T)
-        if 'band' in selected:
-            out['band'] = plt_band_diagram(Ef, Ec, Ev, Eg)
-        if 'rho_dop' in selected:
-            out['rho_dop'] = plt_resistivity_vs_doping()
-        if 'eg_T' in selected:
-            out['eg_T'] = plt_bandgap_vs_T(Eg)
-        if 'kp1d' in selected:
-            out['kp1d'] = plt_kp_1d(a, V0_J, b)
-        if 'kp2d' in selected:
-            out['kp2d'] = plt_kp_2d(a, V0_J, b)
-        if 'kp3d' in selected:
-            out['kp3d'] = plt_kp_3d(a, V0_J, b)
-        if 'recip' in selected:
-            out['recip'] = plt_reciprocal_lattice()
-        if 'hall' in selected:
-            out['hall'] = plt_hall(Nc, Nv, Eg, Nd)
-        if 'iv' in selected:
-            out['iv'] = plt_iv_diode(T, Eg)
-        if 'schot' in selected:
-            out['schot'] = plt_schottky(Eg)
-        if 'phonon' in selected:
-            out['phonon'] = plt_phonon()
-        if 'depl' in selected:
-            out['depl'] = plt_depletion(Nc, Nd, Eg)
-        if 'bz_plot' in selected:
-            out['bz_plot'] = plot_brillouin_zones(
-                lattice=bz_lattice, a=bz_a, b=bz_b,
-                angle=bz_angle, n_zones=bz_zones)
-
         for key in PLOT_KEYS:
-            if key not in out:
+            if key in open_plots:
+                out[key] = render_plot_html(key, ctx)
+            else:
                 out[key] = PLOT_PLACEHOLDER
         return out
 
     plots = build_plots()
+    open_plots_csv = ','.join(sorted(open_plots))
 
     return render_template(
         'index.html',
@@ -650,7 +892,9 @@ def home():
         mu=mu, sigma=sigma, l=l_mfp,
         bz_lattice=bz_lattice, bz_a=bz_a, bz_b=bz_b,
         bz_angle=bz_angle, bz_zones=bz_zones,
-        selected_plots=selected,
+        open_plots=open_plots,
+        open_plots_csv=open_plots_csv,
+        plot_placeholder_html=PLOT_PLACEHOLDER,
         **plots
     )
 
@@ -681,6 +925,22 @@ def api_bz():
         return jsonify({'plot': div})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/plot', methods=['POST'])
+def api_plot():
+    data = request.get_json(silent=True) or {}
+    plot_key = data.get('plot')
+    if plot_key not in PLOT_KEYS:
+        return jsonify({'error': 'Invalid plot key'}), 400
+    try:
+        ctx = context_from_api_payload(data)
+        html = render_plot_html(plot_key, ctx)
+    except (TypeError, ValueError) as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'plot': html})
 
 
 @app.route('/contact')

@@ -1,5 +1,5 @@
 /**
- * circuit.js — Interactive animated semiconductor circuit board
+ * circuit.js — Animated circuit hero for OPEN-Quantum
  * Renders on a <canvas id="circuit-canvas">
  * Features: PCB traces, glowing nodes, moving electron particles,
  * MOSFET/BJT/capacitor/resistor symbols, interactive hover.

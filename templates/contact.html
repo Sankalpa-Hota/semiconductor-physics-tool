@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contact — Semiconductor Physics Tool</title>
+  <title>Contact — OPEN-Quantum</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% include '_electrons.html' %}
 <header class="site-header">
-  <div class="logo"><span class="logo-dot"></span>SEMICONDUCTOR PHYSICS LAB</div>
+  <div class="logo" aria-label="OPEN-Quantum"><span class="oq-neon oq-neon--header" aria-hidden="true"><span class="oq-letter oq-o">O</span><span class="oq-letter oq-q">Q</span></span><span class="logo-wordmark">OPEN-Quantum</span></div>
   <div class="header-badges">
     <a href="/" style="color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.08em;text-decoration:none;">← Back</a>
   </div>
@@ -21,6 +22,6 @@
     Contributions, issues, and feature requests welcome.
   </p>
 </div>
-<footer class="site-footer">SEMICONDUCTOR PHYSICS TOOL · Flask + NumPy + Plotly</footer>
+<footer class="site-footer">OPEN-Quantum · Flask + NumPy + Plotly</footer>
 </body>
 </html>

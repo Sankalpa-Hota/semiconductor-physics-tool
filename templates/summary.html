@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About — Semiconductor Physics Tool</title>
+  <title>About — OPEN-Quantum</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% include '_electrons.html' %}
 <header class="site-header">
-  <div class="logo"><span class="logo-dot"></span>SEMICONDUCTOR PHYSICS LAB</div>
+  <div class="logo" aria-label="OPEN-Quantum"><span class="oq-neon oq-neon--header" aria-hidden="true"><span class="oq-letter oq-o">O</span><span class="oq-letter oq-q">Q</span></span><span class="logo-wordmark">OPEN-Quantum</span></div>
   <div class="header-badges">
     <a href="/" style="color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;
-       letter-spacing:0.08em;text-decoration:none;">← Simulator</a>
+       letter-spacing:0.08em;text-decoration:none;">← Home</a>
   </div>
 </header>
 
@@ -20,7 +21,7 @@
   <!-- Title -->
   <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--cyan);
        letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;">
-    About This Tool
+    About OPEN-Quantum
   </div>
   <h2 style="font-family:var(--font-mono);font-size:1.4rem;color:var(--text-1);
        font-weight:700;letter-spacing:0.05em;margin-bottom:2rem;
@@ -35,7 +36,7 @@
        box-shadow:0 4px 40px rgba(0,0,0,0.5);">
     <p style="color:var(--text-1);font-size:1rem;line-height:1.9;
          font-family:var(--font-body);">
-      This tool is an interactive, browser-based semiconductor physics simulator that
+      OPEN-Quantum is an interactive, browser-based semiconductor physics simulator that
       transforms traditionally static textbook concepts — Fermi-Dirac statistics, Kronig-Penney
       band theory, Brillouin zones, Drude transport, p-n junctions, MOSFET characteristics,
       phonon dispersion, and reciprocal lattice geometry — into live, parameter-driven
@@ -44,7 +45,7 @@
       most learners encounter it only through dense equations and flat diagrams; by making
       every parameter tunable via sliders and every plot instantly responsive, we collapse
       the gap between formula and physical intuition. The animated circuit-board interface,
-      nineteen distinct plots, 1st-through-10th Brillouin zone mapper, and an AI chatbot
+      twenty-five distinct plots, 1st-through-10th Brillouin zone mapper, and an AI chatbot
       (PhysBot) that retrieves live knowledge from Wikipedia and ArXiv on every query together
       create a single cohesive environment where a student, researcher, or engineer can
       explore, question, and understand the physics that underlies every transistor on earth.
@@ -56,7 +57,7 @@
        gap:1px;background:var(--border);border:1px solid var(--border);
        border-radius:var(--r);overflow:hidden;margin-bottom:2.5rem;">
     {% set stats = [
-      ('19+', 'Physics Plots'),
+      ('25+', 'Physics Plots'),
       ('12',  'Tunable Parameters'),
       ('10',  'Brillouin Zones'),
       ('6',   'Physics Models'),
@@ -126,9 +127,9 @@
 </div>
 
 <footer class="site-footer">
-  SEMICONDUCTOR PHYSICS TOOL &nbsp;·&nbsp;
+  OPEN-Quantum &nbsp;·&nbsp;
   Flask + NumPy + Plotly &nbsp;·&nbsp;
-  <a href="/">Simulator</a> &nbsp;·&nbsp;
+  <a href="/">Home</a> &nbsp;·&nbsp;
   <a href="/contact">Contact</a>
 </footer>
 

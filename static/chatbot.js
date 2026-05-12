@@ -1,6 +1,6 @@
 /**
- * chatbot.js — PhysBot floating chat widget
- * Semiconductor Physics RAG chatbot UI
+ * chatbot.js — PhysBot floating chat widget (OPEN-Quantum)
+ * RAG chatbot UI
  * Features: floating FAB, slide-up panel, markdown rendering,
  * source attribution, typing indicator, conversation history,
  * suggested questions, context word counter.
@@ -307,7 +307,7 @@
     // FAB
     const fab = document.createElement('button');
     fab.id = 'physbot-fab';
-    fab.setAttribute('aria-label', 'Open PhysBot chat');
+    fab.setAttribute('aria-label', 'Open OPEN-Quantum chat (PhysBot)');
     fab.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -325,7 +325,7 @@
     const panel = document.createElement('div');
     panel.id = 'physbot-panel';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', 'PhysBot semiconductor physics assistant');
+    panel.setAttribute('aria-label', 'PhysBot — OPEN-Quantum assistant');
     panel.innerHTML = `
       <!-- Header -->
       <div class="pb-header">
@@ -403,7 +403,7 @@
 
     // Welcome message
     setTimeout(() => addBotMessage(
-      "👋 Hi! I'm **PhysBot**, your semiconductor physics AI assistant.\n\n" +
+      "👋 Hi! I'm **PhysBot**, the AI assistant for **OPEN-Quantum**.\n\n" +
       "I retrieve live knowledge from **Wikipedia** and **ArXiv** on every query — " +
       "no stale manual knowledge base. I also connect to **llama3 via Ollama** if running locally.\n\n" +
       "Ask me anything about semiconductors, band theory, MOSFETs, Brillouin zones, " +

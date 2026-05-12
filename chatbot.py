@@ -1,5 +1,5 @@
 """
-chatbot.py — Evergreen RAG Chatbot for Semiconductor Physics
+chatbot.py — Evergreen RAG Chatbot for OPEN-Quantum
 """
 
 from flask import Blueprint, request, jsonify, render_template
@@ -128,7 +128,7 @@ def http_get(url: str, timeout=10) -> str:
     try:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "SemiconductorPhysicsBot/2.0 (educational tool)"}
+            headers={"User-Agent": "OpenQuantum/1.0 (educational tool; OPEN-Quantum)"}
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode('utf-8', errors='replace')
@@ -320,8 +320,8 @@ def retrieve(query: str) -> str:
 #  SYSTEM PROMPT BUILDER  (dynamic, uses retrieved context)
 # ══════════════════════════════════════════════════════════════
 
-STATIC_PREAMBLE = """You are PhysBot, an expert AI assistant for semiconductor physics,
-built into an interactive simulation tool. You have access to live-retrieved knowledge
+STATIC_PREAMBLE = """You are PhysBot, the expert AI assistant built into OPEN-Quantum,
+an interactive semiconductor physics simulation. You have access to live-retrieved knowledge
 from Wikipedia and ArXiv papers.
 
 Your role:
@@ -587,7 +587,7 @@ def fallback_answer(query: str, context: str) -> str:
                 f"*(Install Ollama + llama3 for full AI-generated answers. "
                 f"Run: `ollama pull llama3` then `ollama serve`)*")
 
-    return ("I'm **PhysBot** — your semiconductor physics AI assistant.\n\n"
+    return ("I'm **PhysBot** — the AI assistant for **OPEN-Quantum**.\n\n"
             "I can answer questions on:\n"
             "• Fermi-Dirac statistics & carrier concentrations\n"
             "• Band theory, Kronig-Penney, Brillouin zones (1st–10th)\n"
