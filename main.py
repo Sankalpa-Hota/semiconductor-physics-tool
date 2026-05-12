@@ -97,14 +97,19 @@ PLOT_PLACEHOLDER = (
 )
 
 def parse_open_plots(form):
-    """Comma-separated keys from the hidden field; empty / missing → no plots (guided mode)."""
+    """Plot keys from checkbox list (plot_pick) ∪ hidden open_plots; guided mode if both empty."""
+    keys = set()
+    for item in form.getlist('plot_pick'):
+        k = (item or '').strip()
+        if k in PLOT_KEYS:
+            keys.add(k)
     raw = form.get('open_plots')
-    if raw is None:
-        return frozenset()
-    raw = raw.strip()
-    if not raw:
-        return frozenset()
-    return frozenset(k.strip() for k in raw.split(',') if k.strip() in PLOT_KEYS)
+    if raw:
+        for k in raw.split(','):
+            k = k.strip()
+            if k in PLOT_KEYS:
+                keys.add(k)
+    return frozenset(keys)
 
 
 def fetch_wikipedia_extract(title, timeout=2.5, max_len=480):

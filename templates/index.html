@@ -433,7 +433,7 @@
         Which plots should OQ generate? (check, then <strong>Apply parameters</strong> — or use <strong>Render this</strong> on a card)
       </span>
       {% for pk in section_plots %}
-      <label><input type="checkbox" class="oq-plot-pick" value="{{ pk }}"
+      <label><input type="checkbox" class="oq-plot-pick" name="plot_pick" form="sim-form" value="{{ pk }}"
         {% if pk in open_plots %}checked{% endif %}>
         {{ plot_titles[pk] }}</label>
       {% endfor %}
@@ -655,6 +655,8 @@
         <div class="plot-inner">{{ pn_x | safe }}</div>
       </div>
     </div>
+
+    </div><!-- /.oq-sec-block devices -->
 
     <div class="oq-sec-block" {% if active_section != 'ek' %}style="display:none"{% endif %}>
     <!-- E(k) schematics -->
