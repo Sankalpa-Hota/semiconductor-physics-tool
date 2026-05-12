@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Contact Sankalpa Hota</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Semiconductor Physics Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="container">
-    <h1>📧 Contact Me</h1>
-
-    <div class="contact-card">
-        <p><strong>Email:</strong> <a href="mailto:sankalpahota503@gmail.com">sankalpahota503@gmail.com</a></p>
-    </div>
-
-    <div class="contact-card">
-        <p><strong>LinkedIn:</strong> 
-        <a href="https://www.linkedin.com/in/sankalpa-hota-86937517a/" target="_blank">
-            https://www.linkedin.com/in/sankalpa-hota-86937517a/
-        </a></p>
-    </div>
-
-    <div class="contact-card">
-        <a href="/" class="back-link">⬅ Back to Tool</a>
-    </div>
+<header class="site-header">
+  <div class="logo"><span class="logo-dot"></span>SEMICONDUCTOR PHYSICS LAB</div>
+  <div class="header-badges">
+    <a href="/" style="color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.08em;text-decoration:none;">← Back</a>
+  </div>
+</header>
+<div style="max-width:520px;margin:4rem auto;padding:2rem;">
+  <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--cyan);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1rem;">Contact</div>
+  <p style="color:var(--text-2);font-family:var(--font-body);line-height:1.8;">
+    This tool is open source. Find it on
+    <a href="https://github.com/Sankalpa-Hota/semiconductor-physics-tool" style="color:var(--cyan);">GitHub</a>.
+    Contributions, issues, and feature requests welcome.
+  </p>
 </div>
+<footer class="site-footer">SEMICONDUCTOR PHYSICS TOOL · Flask + NumPy + Plotly</footer>
 </body>
 </html>
