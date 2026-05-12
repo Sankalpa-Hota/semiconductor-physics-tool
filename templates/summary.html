@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Semiconductor Physics Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <div class="logo"><span class="logo-dot"></span>SEMICONDUCTOR PHYSICS LAB</div>
+  <div class="header-badges">
+    <a href="/" style="color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;
+       letter-spacing:0.08em;text-decoration:none;">← Simulator</a>
+  </div>
+</header>
+
+<div style="max-width:780px;margin:0 auto;padding:4rem 2rem 6rem;">
+
+  <!-- Title -->
+  <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--cyan);
+       letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;">
+    About This Tool
+  </div>
+  <h2 style="font-family:var(--font-mono);font-size:1.4rem;color:var(--text-1);
+       font-weight:700;letter-spacing:0.05em;margin-bottom:2rem;
+       text-shadow:0 0 20px #00f0ff22;">
+    What We Built & Why
+  </h2>
+
+  <!-- Summary paragraph -->
+  <div style="background:var(--bg-2);border:1px solid var(--border);
+       border-left:3px solid var(--cyan);border-radius:var(--r);
+       padding:2rem 2.25rem;margin-bottom:2.5rem;
+       box-shadow:0 4px 40px rgba(0,0,0,0.5);">
+    <p style="color:var(--text-1);font-size:1rem;line-height:1.9;
+         font-family:var(--font-body);">
+      This tool is an interactive, browser-based semiconductor physics simulator that
+      transforms traditionally static textbook concepts — Fermi-Dirac statistics, Kronig-Penney
+      band theory, Brillouin zones, Drude transport, p-n junctions, MOSFET characteristics,
+      phonon dispersion, and reciprocal lattice geometry — into live, parameter-driven
+      visualizations backed by real physics equations. We built it because semiconductor
+      physics sits at the exact intersection of quantum mechanics and modern computing, yet
+      most learners encounter it only through dense equations and flat diagrams; by making
+      every parameter tunable via sliders and every plot instantly responsive, we collapse
+      the gap between formula and physical intuition. The animated circuit-board interface,
+      nineteen distinct plots, 1st-through-10th Brillouin zone mapper, and an AI chatbot
+      (PhysBot) that retrieves live knowledge from Wikipedia and ArXiv on every query together
+      create a single cohesive environment where a student, researcher, or engineer can
+      explore, question, and understand the physics that underlies every transistor on earth.
+    </p>
+  </div>
+
+  <!-- Stats grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+       gap:1px;background:var(--border);border:1px solid var(--border);
+       border-radius:var(--r);overflow:hidden;margin-bottom:2.5rem;">
+    {% set stats = [
+      ('19+', 'Physics Plots'),
+      ('12',  'Tunable Parameters'),
+      ('10',  'Brillouin Zones'),
+      ('6',   'Physics Models'),
+      ('∞',   'Live RAG Sources'),
+      ('0',   'Manual Knowledge Base'),
+    ] %}
+    {% for val, lbl in stats %}
+    <div style="background:var(--bg-2);padding:1.25rem 1.5rem;text-align:center;">
+      <div style="font-family:var(--font-mono);font-size:1.6rem;font-weight:700;
+           color:var(--green);text-shadow:0 0 14px #00ff9d55;">{{ val }}</div>
+      <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-3);
+           letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">{{ lbl }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Feature list -->
+  <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--purple);
+       letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1rem;
+       display:flex;align-items:center;gap:0.7rem;">
+    Features
+    <span style="flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);"></span>
+  </div>
+
+  {% set features = [
+    ('Interactive Circuit Hero', 'Animated PCB canvas with electron particles, MOSFETs, capacitors, and BJTs — hover to activate traces'),
+    ('Fermi-Dirac & DoS', 'Occupation probability at 5 temperatures simultaneously, density of states with Fermi occupation overlay'),
+    ('Kronig-Penney 1D/2D/3D', 'Full band structure E(k), barrier-height map, and 3D surface E(kx,ky) for square lattice'),
+    ('Brillouin Zones 1–10', 'Wigner-Seitz construction in 2D for square, rectangular, and hexagonal lattices with Γ-point and G-grid'),
+    ('Transport Physics', 'Drude conductivity, Matthiessen mobility, carrier concentrations, Hall effect, resistivity vs doping'),
+    ('Junction & Device Physics', 'p-n I-V, Schottky barrier bands, depletion width, MOSFET I-V regions'),
+    ('Lattice Dynamics', 'Phonon dispersion (acoustic + optical), 3D real & reciprocal lattice vectors'),
+    ('PhysBot AI Assistant', 'Floating chatbot with live Wikipedia + ArXiv retrieval, TF-IDF ranking, llama3 generation'),
+    ('Range Sliders + Text Input', 'Every parameter has a physics-appropriate range slider and direct numeric input'),
+    ('Dark Mode Circuit UI', 'Space Mono monospaced aesthetic, neon-on-obsidian color scheme, fully responsive'),
+  ] %}
+
+  {% for title, desc in features %}
+  <div style="display:flex;gap:1rem;padding:0.9rem 0;border-bottom:1px solid var(--border);">
+    <div style="width:6px;height:6px;border-radius:50%;background:var(--cyan);
+         box-shadow:0 0 8px var(--cyan);flex-shrink:0;margin-top:6px;"></div>
+    <div>
+      <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-1);
+           font-weight:700;margin-bottom:2px;">{{ title }}</div>
+      <div style="font-size:0.82rem;color:var(--text-2);line-height:1.6;">{{ desc }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Tech stack -->
+  <div style="margin-top:2.5rem;padding:1.25rem 1.5rem;background:var(--bg-1);
+       border:1px solid var(--border);border-radius:var(--r);">
+    <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--amber);
+         letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.75rem;">Tech Stack</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      {% for tech in ['Flask', 'NumPy', 'SciPy', 'Plotly', 'Shapely', 'Canvas API',
+                      'Wikipedia API', 'ArXiv API', 'Ollama / llama3',
+                      'TF-IDF RAG', 'Space Mono', 'DM Sans'] %}
+      <span style="font-family:var(--font-mono);font-size:0.65rem;
+           padding:3px 10px;border-radius:12px;
+           border:1px solid var(--border);color:var(--text-2);
+           background:var(--bg-2);">{{ tech }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  SEMICONDUCTOR PHYSICS TOOL &nbsp;·&nbsp;
+  Flask + NumPy + Plotly &nbsp;·&nbsp;
+  <a href="/">Simulator</a> &nbsp;·&nbsp;
+  <a href="/contact">Contact</a>
+</footer>
+
+<script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+</body>
+</html>
