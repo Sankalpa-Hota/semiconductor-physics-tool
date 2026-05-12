@@ -1,118 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Physics Modeling Tool</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semiconductor Physics Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Device Physics Modeling Tool</h1>
 
-        <form method="POST">
+<!-- ── HEADER ────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="logo">
+    <span class="logo-dot"></span>
+    SEMICONDUCTOR PHYSICS LAB
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-cyan">v2.0</span>
+    <span class="badge badge-green">LIVE SIM</span>
+  </div>
+</header>
 
-            <!-- === Kronig-Penney === -->
-            <div class="input-form">
-                <h2>Kronig–Penney Model</h2>
-                <p class="formula-hint">E = (ħ²k²)/(2m) + V₀ sin²(πx/a)</p>
+<!-- ── CIRCUIT HERO ─────────────────────────────────── -->
+<div class="circuit-hero">
+  <canvas id="circuit-canvas"></canvas>
+  <div class="hero-overlay">
+    <div class="hero-title">Interactive Physics Simulator</div>
+    <div class="hero-sub">Fermi–Dirac · Drude · Kronig–Penney · Band Theory · Phonons</div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="sv">19+</div>
+        <div class="sl">Visualizations</div>
+      </div>
+      <div class="hero-stat">
+        <div class="sv">12</div>
+        <div class="sl">Parameters</div>
+      </div>
+      <div class="hero-stat">
+        <div class="sv">6</div>
+        <div class="sl">Physics Models</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-                <div class="input-row">
-                    <label for="a">Lattice Constant (a, m):</label>
-                    <input type="number" name="a" id="a" step="1e-12" value="{{ a }}">
-                </div>
+<!-- ── APP LAYOUT ────────────────────────────────────── -->
+<div class="app-layout">
 
-                <div class="input-row">
-                    <label for="V0">Potential (V₀, eV):</label>
-                    <input type="number" name="V0" id="V0" value="{{ V0 }}">
-                </div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <form method="POST" id="sim-form">
 
-                <div class="input-row">
-                    <label for="b">Barrier Width (b, m):</label>
-                    <input type="number" name="b" id="b" step="1e-12" value="{{ b }}">
-                </div>
-            </div>
+      <!-- Boltzmann / Carrier -->
+      <div class="param-section">
+        <div class="param-section-title">Carrier Statistics</div>
 
-            <!-- === Boltzmann Transport === -->
-            <div class="input-form">
-                <h2>Boltzmann Transport Model</h2>
-                <p class="formula-hint">σ = n·q·μ , l = v<sub>F</sub>·τ</p>
-
-                <div class="input-row">
-                    <label for="Nc">Nc (cm⁻³):</label>
-                    <input type="number" name="Nc" id="Nc" value="{{ Nc }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="Nv">Nv (cm⁻³):</label>
-                    <input type="number" name="Nv" id="Nv" value="{{ Nv }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="Eg">Bandgap (Eg, eV):</label>
-                    <input type="number" name="Eg" id="Eg" value="{{ Eg }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="Nd">Doping (Nd, cm⁻³):</label>
-                    <input type="number" name="Nd" id="Nd" value="{{ Nd }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="T">Temperature (K):</label>
-                    <input type="number" name="T" id="T" value="{{ T }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="tau">Relaxation Time (τ, s):</label>
-                    <input type="number" name="tau" id="tau" value="{{ tau }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="vF">Fermi Velocity (vF, m/s):</label>
-                    <input type="number" name="vF" id="vF" value="{{ vF }}">
-                </div>
-
-                <div class="input-row">
-                    <label for="m_eff">Effective Mass (m*):</label>
-                    <input type="number" name="m_eff" id="m_eff" value="{{ m_eff }}">
-                </div>
-            </div>
-
-            <button type="submit" class="submit-btn">Compute</button>
-        </form>
-
-        <!-- === Results Section === -->
-        <div class="results">
-            <h2>Results</h2>
-
-            <div class="result-card">Intrinsic Carrier (nᵢ): {{ "{:.3e}".format(ni) }}</div>
-            <div class="result-card">Fermi Level (E<sub>f</sub>): {{ "{:.3f}".format(Ef) }} eV</div>
-            <div class="result-card">Electron Density (n): {{ "{:.3e}".format(n) }}</div>
-            <div class="result-card">Hole Density (p): {{ "{:.3e}".format(p) }}</div>
-            <div class="result-card">Mobility (μ): {{ "{:.3e}".format(mu) }} cm²/V·s</div>
-            <div class="result-card">Conductivity (σ): {{ "{:.3e}".format(sigma) }} S/m</div>
-            <div class="result-card">Mean Free Path (l): {{ "{:.3e}".format(l) }} m</div>
-
-            <div class="plot-section">
-                <h3>Intrinsic Carrier Concentration vs Temperature</h3>
-                {{ plot_div1|safe }}
-
-                <h3>Mobility vs Temperature</h3>
-                {{ plot_div2|safe }}
-
-                <h3>Kronig–Penney Band Structure (1D)</h3>
-                {{ kp_plot_1d|safe }}
-
-                <h3>Kronig–Penney (2D)</h3>
-                {{ kp_plot_2d|safe }}
-
-                <h3>Reciprocal Lattice (3D)</h3>
-                {{ plot_div_rl|safe }}
-            </div>
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Nc (cm⁻³)</span>
+            <span class="param-value-badge" id="lbl-Nc">{{ "%.2e"|format(Nc) }}</span>
+          </div>
+          <input type="range" name="Nc" id="Nc"
+            min="1e17" max="1e20" step="1e17" value="{{ Nc }}"
+            oninput="updateSlider(this,'lbl-Nc','sci')">
+          <div class="range-bounds"><span>1×10¹⁷</span><span>1×10²⁰</span></div>
         </div>
 
-        <a href="/contact" class="contact-link">Contact Me</a>
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Nv (cm⁻³)</span>
+            <span class="param-value-badge" id="lbl-Nv">{{ "%.2e"|format(Nv) }}</span>
+          </div>
+          <input type="range" name="Nv" id="Nv"
+            min="1e17" max="1e20" step="1e17" value="{{ Nv }}"
+            oninput="updateSlider(this,'lbl-Nv','sci')">
+          <div class="range-bounds"><span>1×10¹⁷</span><span>1×10²⁰</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Bandgap Eg (eV)</span>
+            <span class="param-value-badge" id="lbl-Eg">{{ "%.3f"|format(Eg) }} eV</span>
+          </div>
+          <input type="range" name="Eg" id="Eg"
+            min="0.1" max="5.5" step="0.01" value="{{ Eg }}"
+            oninput="updateSlider(this,'lbl-Eg','fix3','eV')">
+          <div class="range-bounds"><span>0.1 eV</span><span>5.5 eV</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Doping Nd (cm⁻³)</span>
+            <span class="param-value-badge" id="lbl-Nd">{{ "%.2e"|format(Nd) }}</span>
+          </div>
+          <input type="range" name="Nd" id="Nd"
+            min="1e13" max="1e20" step="1e13" value="{{ Nd }}"
+            oninput="updateSlider(this,'lbl-Nd','sci')">
+          <div class="range-bounds"><span>10¹³</span><span>10²⁰</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Temperature (K)</span>
+            <span class="param-value-badge" id="lbl-T">{{ T|int }} K</span>
+          </div>
+          <input type="range" name="T" id="T"
+            min="100" max="900" step="10" value="{{ T }}"
+            oninput="updateSlider(this,'lbl-T','int','K')">
+          <div class="range-bounds"><span>100 K</span><span>900 K</span></div>
+        </div>
+      </div>
+
+      <!-- Drude / Transport -->
+      <div class="param-section">
+        <div class="param-section-title">Drude Transport</div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Relax. Time τ (fs)</span>
+            <span class="param-value-badge" id="lbl-tau">{{ "%.1f"|format(tau*1e15) }} fs</span>
+          </div>
+          <input type="range" name="tau" id="tau"
+            min="1e-16" max="1e-13" step="1e-16" value="{{ tau }}"
+            oninput="updateSlider(this,'lbl-tau','tau')">
+          <div class="range-bounds"><span>0.1 fs</span><span>100 fs</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Fermi Velocity (m/s)</span>
+            <span class="param-value-badge" id="lbl-vF">{{ "%.2e"|format(vF) }}</span>
+          </div>
+          <input type="range" name="vF" id="vF"
+            min="1e4" max="1e7" step="1e4" value="{{ vF }}"
+            oninput="updateSlider(this,'lbl-vF','sci')">
+          <div class="range-bounds"><span>10⁴</span><span>10⁷</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Eff. Mass m* (m₀)</span>
+            <span class="param-value-badge" id="lbl-m">{{ "%.3f"|format(m_eff) }} m₀</span>
+          </div>
+          <input type="range" name="m_eff" id="m_eff"
+            min="0.01" max="2.0" step="0.01" value="{{ m_eff }}"
+            oninput="updateSlider(this,'lbl-m','fix3','m₀')">
+          <div class="range-bounds"><span>0.01</span><span>2.0</span></div>
+        </div>
+      </div>
+
+      <!-- Kronig–Penney -->
+      <div class="param-section">
+        <div class="param-section-title">Kronig–Penney Model</div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Lattice const. a (Å)</span>
+            <span class="param-value-badge" id="lbl-a">{{ "%.1f"|format(a*1e10) }} Å</span>
+          </div>
+          <input type="range" name="a" id="a"
+            min="1e-10" max="20e-10" step="0.5e-10" value="{{ a }}"
+            oninput="updateSlider(this,'lbl-a','angstrom')">
+          <div class="range-bounds"><span>1 Å</span><span>20 Å</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Barrier V₀ (eV)</span>
+            <span class="param-value-badge" id="lbl-V0">{{ "%.1f"|format(V0) }} eV</span>
+          </div>
+          <input type="range" name="V0" id="V0"
+            min="0.5" max="30" step="0.5" value="{{ V0 }}"
+            oninput="updateSlider(this,'lbl-V0','fix1','eV')">
+          <div class="range-bounds"><span>0.5 eV</span><span>30 eV</span></div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span class="pname">Barrier Width b (Å)</span>
+            <span class="param-value-badge" id="lbl-b">{{ "%.1f"|format(b*1e10) }} Å</span>
+          </div>
+          <input type="range" name="b" id="b"
+            min="0.1e-10" max="10e-10" step="0.1e-10" value="{{ b }}"
+            oninput="updateSlider(this,'lbl-b','angstrom')">
+          <div class="range-bounds"><span>0.1 Å</span><span>10 Å</span></div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-compute">⟳ Compute &amp; Render</button>
+    </form>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- Results Bar -->
+    <div class="results-bar">
+      <div class="result-cell">
+        <div class="rl">Intrinsic nᵢ</div>
+        <div class="rv">{{ "%.3e"|format(ni) }}</div>
+        <div class="ru">cm⁻³</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Fermi Level Eᶠ</div>
+        <div class="rv">{{ "%.4f"|format(Ef) }}</div>
+        <div class="ru">eV</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Electrons n</div>
+        <div class="rv">{{ "%.3e"|format(n) }}</div>
+        <div class="ru">cm⁻³</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Holes p</div>
+        <div class="rv">{{ "%.3e"|format(p) }}</div>
+        <div class="ru">cm⁻³</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Mobility μ</div>
+        <div class="rv">{{ "%.2f"|format(mu) }}</div>
+        <div class="ru">cm²/V·s</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Conductivity σ</div>
+        <div class="rv">{{ "%.3e"|format(sigma) }}</div>
+        <div class="ru">S/m</div>
+      </div>
+      <div class="result-cell">
+        <div class="rl">Mean Free Path</div>
+        <div class="rv">{{ "%.3e"|format(l) }}</div>
+        <div class="ru">m</div>
+      </div>
     </div>
+
+    <!-- ── QUANTUM STATISTICS ── -->
+    <div class="section-header">Quantum Statistics & Occupation</div>
+    <div class="eq-strip">
+      <span>f(E) = 1 / (e^((E−Eᶠ)/kT) + 1)</span>
+      <span class="eq">Eᶠ = Ec + kT·ln(Nd/nᵢ)</span>
+      <span>nᵢ = √(Nc·Nv) e^(−Eg/2kT)</span>
+    </div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Fermi–Dirac at 5 Temperatures</div>
+        <div class="plot-inner">{{ fd | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>DoS & Fermi Occupation</div>
+        <div class="plot-inner">{{ dos | safe }}</div>
+      </div>
+    </div>
+
+    <!-- ── TRANSPORT ── -->
+    <div class="section-header">Transport & Carrier Properties</div>
+    <div class="eq-strip">
+      <span>σ = n·q·μ</span>
+      <span class="eq">1/μ = 1/μ_L + 1/μ_I  (Matthiessen)</span>
+      <span>l = vF·τ</span>
+    </div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>nᵢ vs Temperature</div>
+        <div class="plot-inner">{{ ni_T | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Mobility vs Temperature</div>
+        <div class="plot-inner">{{ mu_T | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Carrier Concentrations vs T</div>
+        <div class="plot-inner">{{ carr_T | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Conductivity vs Temperature</div>
+        <div class="plot-inner">{{ cond_T | safe }}</div>
+      </div>
+    </div>
+
+    <!-- ── DOPING & FERMI LEVEL ── -->
+    <div class="section-header">Doping & Energy Levels</div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Fermi Level vs Doping</div>
+        <div class="plot-inner">{{ ef_dop | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Energy Band Diagram</div>
+        <div class="plot-inner">{{ band | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Resistivity vs Doping</div>
+        <div class="plot-inner">{{ rho_dop | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Bandgap vs Temperature (Varshni)</div>
+        <div class="plot-inner">{{ eg_T | safe }}</div>
+      </div>
+    </div>
+
+    <!-- ── JUNCTIONS ── -->
+    <div class="section-header">Junctions & Devices</div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>p-n Junction I–V</div>
+        <div class="plot-inner">{{ iv | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Schottky Barrier Band Diagram</div>
+        <div class="plot-inner">{{ schot | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Hall Effect: V_H vs B</div>
+        <div class="plot-inner">{{ hall | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Depletion Width vs Vbi</div>
+        <div class="plot-inner">{{ depl | safe }}</div>
+      </div>
+    </div>
+
+    <!-- ── BAND STRUCTURE ── -->
+    <div class="section-header">Kronig–Penney Band Structure</div>
+    <div class="eq-strip">
+      <span class="eq">cos(ka) = cos(α(a−b))cosh(βb) + (β²−α²)/(2αβ) sin(α(a−b))sinh(βb)</span>
+    </div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>1D Band Structure E(k)</div>
+        <div class="plot-inner">{{ kp1d | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Band Map vs Barrier Height</div>
+        <div class="plot-inner">{{ kp2d | safe }}</div>
+      </div>
+    </div>
+    <div class="plot-grid">
+      <div class="plot-card plot-card-full">
+        <div class="plot-card-title"><span class="pct-dot"></span>3D Band Structure E(kx, ky)</div>
+        <div class="plot-inner">{{ kp3d | safe }}</div>
+      </div>
+    </div>
+
+    <!-- ── LATTICE & PHONONS ── -->
+    <div class="section-header">Lattice Dynamics & Phonons</div>
+    <div class="plot-grid">
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Phonon Dispersion (1D Diatomic)</div>
+        <div class="plot-inner">{{ phonon | safe }}</div>
+      </div>
+      <div class="plot-card">
+        <div class="plot-card-title"><span class="pct-dot"></span>Real & Reciprocal Lattice (3D)</div>
+        <div class="plot-inner">{{ recip | safe }}</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  SEMICONDUCTOR PHYSICS TOOL &nbsp;·&nbsp;
+  Flask + NumPy + Plotly &nbsp;·&nbsp;
+  <a href="/contact">Contact</a>
+</footer>
+
+<script src="{{ url_for('static', filename='circuit.js') }}"></script>
+<script>
+// ── Slider helpers ─────────────────────────────────────────
+function updateSlider(el, labelId, fmt, unit='') {
+  const v   = parseFloat(el.value);
+  const lbl = document.getElementById(labelId);
+  let txt;
+  if      (fmt === 'sci')      txt = v.toExponential(2);
+  else if (fmt === 'fix1')     txt = v.toFixed(1) + (unit ? ' '+unit : '');
+  else if (fmt === 'fix3')     txt = v.toFixed(3) + (unit ? ' '+unit : '');
+  else if (fmt === 'int')      txt = Math.round(v) + (unit ? ' '+unit : '');
+  else if (fmt === 'tau')      txt = (v*1e15).toFixed(2) + ' fs';
+  else if (fmt === 'angstrom') txt = (v*1e10).toFixed(1) + ' Å';
+  else txt = v;
+  lbl.textContent = txt;
+  // Update CSS gradient fill
+  const min = parseFloat(el.min), max = parseFloat(el.max);
+  const pct = ((v - min)/(max - min)*100).toFixed(1)+'%';
+  el.style.setProperty('--pct', pct);
+}
+// Init all sliders on load
+document.querySelectorAll('input[type=range]').forEach(el => {
+  const fmt = el.getAttribute('oninput').match(/'([^']+)'/g);
+  if (fmt && fmt.length > 0) {
+    const f = fmt[0].replace(/'/g,'');
+    const u = fmt[1] ? fmt[1].replace(/'/g,'') : '';
+    updateSlider(el, 'lbl-'+el.id, f, u);
+  }
+});
+</script>
 </body>
 </html>
