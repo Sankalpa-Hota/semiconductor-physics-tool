@@ -181,12 +181,12 @@ def parse_recip_form(form):
 M_P_DOS_RATIO = 0.56
 
 
-def parse_bz_layers_raw(raw, n_zones):
-    """Comma-separated zone indices 1..10; 'all' or empty → 1..n_zones."""
+def parse_bz_layers_raw(raw, n_zones_cap=10):
+    """Comma-separated zone indices 1..10; 'all' or empty → 1..n_zones_cap (cap ∈ [1,10])."""
     raw = (raw or '').strip()
-    n_zones = max(1, min(10, int(n_zones)))
+    n_cap = max(1, min(10, int(n_zones_cap)))
     if not raw or raw.lower() == 'all':
-        return tuple(range(1, n_zones + 1))
+        return tuple(range(1, n_cap + 1))
     out = []
     for p in raw.split(','):
         p = p.strip()
@@ -194,31 +194,31 @@ def parse_bz_layers_raw(raw, n_zones):
             continue
         try:
             z = int(round(float(p)))
-            if 1 <= z <= n_zones:
+            if 1 <= z <= 10:
                 out.append(z)
         except (TypeError, ValueError):
             pass
-    return tuple(sorted(set(out))) or tuple(range(1, n_zones + 1))
+    return tuple(sorted(set(out))) or tuple(range(1, n_cap + 1))
 
 
-def parse_bz_layers_json(val, n_zones):
-    """Accept list, 'all', or comma string from JSON API."""
-    n_zones = max(1, min(10, int(n_zones)))
+def parse_bz_layers_json(val, n_zones_cap=10):
+    """Accept list, 'all', or comma string from JSON API (indices 1..10)."""
+    n_cap = max(1, min(10, int(n_zones_cap)))
     if val is None or val == 'all':
-        return tuple(range(1, n_zones + 1))
+        return tuple(range(1, n_cap + 1))
     if isinstance(val, list):
         out = []
         for x in val:
             try:
                 z = int(round(float(x)))
-                if 1 <= z <= n_zones:
+                if 1 <= z <= 10:
                     out.append(z)
             except (TypeError, ValueError):
                 pass
-        return tuple(sorted(set(out))) or tuple(range(1, n_zones + 1))
+        return tuple(sorted(set(out))) or tuple(range(1, n_cap + 1))
     if isinstance(val, str):
-        return parse_bz_layers_raw(val, n_zones)
-    return tuple(range(1, n_zones + 1))
+        return parse_bz_layers_raw(val, n_cap)
+    return tuple(range(1, n_cap + 1))
 
 
 def simulation_context(
@@ -231,7 +231,7 @@ def simulation_context(
     V0_J = V0_m * eV
     m_eff = m_eff_ratio * m0
     if bz_layers is None:
-        bz_layers = tuple(range(1, max(1, min(10, int(bz_zones))) + 1))
+        bz_layers = (1, 2, 3, 4)
     if recip_vertices is None:
         recip_vertices = rl.DEFAULT_VERTICES.copy()
     ni = fb.intrinsic_carrier_concentration(Nc, Nv, Eg, T)
@@ -356,7 +356,7 @@ def context_from_api_payload(data):
     V0_m = 10.0
     b_m = 2e-10
     bz_lattice = 'square'
-    bz_a, bz_b, bz_angle, bz_zones = 1.0, 1.5, 120.0, 4
+    bz_a, bz_b, bz_angle, bz_zones = 1.0, 1.5, 120.0, 10
 
     Nc = _float_param(data, 'Nc', Nc)
     Nv = _float_param(data, 'Nv', Nv)
@@ -372,11 +372,7 @@ def context_from_api_payload(data):
     bz_a = _float_param(data, 'bz_a', bz_a)
     bz_b = _float_param(data, 'bz_b', bz_b)
     bz_angle = _float_param(data, 'bz_angle', bz_angle)
-    try:
-        bz_zones = int(round(float(data.get('bz_zones', bz_zones))))
-    except (TypeError, ValueError):
-        bz_zones = 4
-    bz_zones = max(1, min(10, bz_zones))
+    bz_zones = 10
     lat = data.get('bz_lattice', bz_lattice)
     if isinstance(lat, str) and lat in BZ_LATTICES:
         bz_lattice = lat
@@ -1009,7 +1005,7 @@ def home():
     bz_a        = 1.0
     bz_b        = 1.5
     bz_angle    = 120.0
-    bz_zones    = 4
+    bz_zones    = 10
 
     active_section = (request.args.get('section') or '').strip()
     if request.method == 'POST':
@@ -1038,14 +1034,14 @@ def home():
         bz_a        = gf(request.form, 'bz_a',     bz_a)
         bz_b        = gf(request.form, 'bz_b',     bz_b)
         bz_angle    = gf(request.form, 'bz_angle', bz_angle)
-        bz_zones    = gi(request.form, 'bz_zones', bz_zones, lo=1, hi=10)
+        bz_zones    = 10
         bz_layers   = parse_bz_layers_raw(
             request.form.get('bz_layers'), bz_zones)
         recip_vertices, recip_n, recip_c_axis = parse_recip_from_form(request.form)
         open_plots = parse_open_plots(request.form)
     else:
         open_plots = frozenset()
-        bz_layers = tuple(range(1, max(1, min(10, int(bz_zones))) + 1))
+        bz_layers = (1, 2, 3, 4)
 
     section = oqs.SECTION_BY_ID.get(active_section)
     sidebar_tags = oqs.sidebar_tags_for_section(active_section)
@@ -1084,7 +1080,7 @@ def home():
 
     plots = build_plots()
     open_plots_csv = ','.join(sorted(open_plots))
-    bz_layers_all = tuple(range(1, bz_zones + 1)) == tuple(bz_layers)
+    bz_layers_all = tuple(range(1, 11)) == tuple(bz_layers)
 
     return render_template(
         'index.html',
@@ -1130,11 +1126,8 @@ def api_bz():
         angle = float(data.get('angle', 120.0))
     except (TypeError, ValueError):
         angle = 120.0
-    try:
-        n_zones = int(round(float(data.get('zones', 4))))
-        n_zones = max(1, min(10, n_zones))
-    except (TypeError, ValueError):
-        n_zones = 4
+    # Full extended-zone geometry up to 10th BZ; layers choose what to draw.
+    n_zones = 10
     layer_src = data.get('layers')
     if layer_src is None:
         layer_src = data.get('bz_layers')

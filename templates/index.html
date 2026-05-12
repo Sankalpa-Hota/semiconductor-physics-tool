@@ -62,7 +62,7 @@
 </div>
 
 <!-- ── APP LAYOUT ─────────────────────────────────────────────── -->
-<div class="app-layout">
+<div class="app-layout{% if not active_section %} app-layout--landing{% endif %}">
 
   <!-- ════════════════════════════════════════
        SIDEBAR
@@ -333,9 +333,9 @@
         </summary>
         <div class="sidebar-panel-body">
           <p class="sidebar-blurb">
-            Zone geometry is set in the main column (lattice type, <em>a</em>, <em>b</em>, angle,
-            and <strong>max zone index</strong> <em>n</em> = 1…10). Use <strong>⟳ Render Zones</strong> or
-            <strong>Render this</strong> on the plot card after changes.
+            Zone geometry is set in the main column. Choose any combination of
+            <strong>1st–10th</strong> BZ tiles to plot, then <strong>⟳ Render Zones</strong> or
+            <strong>Render this</strong> on the plot card.
           </p>
         </div>
       </details>
@@ -414,13 +414,15 @@
 
     {% if not active_section %}
     <div class="oq-main-landing">
-      <h2>What do you want OQ to help you with?</h2>
-      <p style="color:var(--text-2);font-size:0.88rem;margin-top:0.5rem;">
-        Pick a workspace below. After you open one, the left panel shows that topic’s parameters, theory notes, and plot choices — with only the sliders and figures relevant to that mode.
+      <p class="oq-landing-kicker">OPEN-Quantum</p>
+      <h1 class="oq-landing-title">What do you want OQ to help you with?</h1>
+      <p class="oq-landing-lead">
+        Pick a workspace below. After you open one, the left panel shows that topic’s parameters,
+        theory notes, and plot choices — only the sliders and figures relevant to that mode.
       </p>
-      <div class="oq-section-grid" style="max-width:440px;margin:1.25rem auto 0;text-align:left;">
+      <div class="oq-section-grid oq-section-grid--landing">
         {% for sec in oq_sections %}
-        <a class="oq-section-link" href="{{ url_for('home', section=sec.id) }}">{{ sec.title }}</a>
+        <a class="oq-section-link oq-section-link--landing" href="{{ url_for('home', section=sec.id) }}">{{ sec.title }}</a>
         {% endfor %}
       </div>
     </div>
@@ -794,50 +796,34 @@
         <div class="range-bounds"><span>60°</span><span>150°</span></div>
       </div>
 
-      <!-- Highest Brillouin zone index n (not “2D”: extent in k-space) -->
-      <div>
-        <div class="param-label" style="margin-bottom:0.35rem;">
-          <span class="pname">Max zone index <em>n</em> (1 … 10)</span>
-          <input type="number" class="param-num-input" id="bz-zones-num"
-                 value="4" min="1" max="10" step="1"
-                 title="1st through 10th Brillouin zone"
-                 onchange="syncBZ('zones', parseInt(this.value))">
+      <!-- Brillouin zones 1st–10th: pick any combination to plot (geometry always includes all 10). -->
+      <div class="bz-zone-pick">
+        <div class="param-label" style="margin-bottom:0.5rem;">
+          <span class="pname">Zones to plot</span>
         </div>
-        <div style="font-size:0.58rem;color:var(--text-3);line-height:1.35;margin:-2px 0 6px;">
-          Include zones <strong>1</strong> up through this index (extended-zone numbering in reciprocal space).
-        </div>
-        <input type="range" id="bz-zones-range"
-               min="1" max="10" step="1" value="4"
-               oninput="syncBZ('zones', parseInt(this.value))"
-               style="width:100%;"
-               aria-label="Maximum Brillouin zone index from 1 to 10">
-        <div class="range-bounds"><span>1</span><span>10</span></div>
-        <!-- Zone color legend -->
-        <div id="bz-legend"
-             style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
-
-        <div id="bz-layer-row" style="margin-top:12px;max-width:520px;">
-          <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--text-2);
-                      letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
-            Which zone indices to draw
-          </div>
-          <label style="font-size:0.65rem;cursor:pointer;color:var(--text-2);display:block;margin-bottom:8px;">
-            <input type="checkbox" id="bz-cb-all" {% if bz_layers_all %}checked{% endif %}>
-            All indices <span style="opacity:0.75">(1–<span id="bz-all-n-label">{{ bz_zones }}</span>, overlaid)</span>
+        <p class="bz-zone-hint">
+          Toggle any of the <strong>10</strong> extended zones. The map is built through the <strong>10th</strong> BZ; only your selection is filled.
+        </p>
+        <label class="bz-all-row">
+          <input type="checkbox" id="bz-cb-all" {% if bz_layers_all %}checked{% endif %}>
+          Select all (1st through 10th)
+        </label>
+        <div id="bz-cb-wrap" class="bz-zone-grid">
+          {% set bz_ord = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'] %}
+          {% for z in range(1, 11) %}
+          <label class="bz-zone-tile" data-z="{{ z }}">
+            <input type="checkbox" class="bz-z-cb" data-z="{{ z }}"
+                   {% if z in bz_layers %}checked{% endif %}>
+            <span class="bz-zone-tile-inner">
+              <span class="bz-zone-ord">{{ bz_ord[z - 1] }}</span>
+              <span class="bz-zone-bz">BZ</span>
+            </span>
           </label>
-          <div id="bz-cb-wrap" style="display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;">
-            {% for z in range(1, 11) %}
-            <label class="bz-z-label" data-z="{{ z }}"
-                   style="font-family:var(--font-mono);font-size:0.6rem;cursor:pointer;
-                          opacity:{{ 0.35 if z > bz_zones else 1.0 }};">
-              <input type="checkbox" class="bz-z-cb" data-z="{{ z }}"
-                     {% if z <= bz_zones and z in bz_layers %}checked{% endif %}
-                     {% if z > bz_zones %}disabled{% endif %}>
-              Z{{ z }}
-            </label>
-            {% endfor %}
-          </div>
+          {% endfor %}
         </div>
+        <div id="bz-legend"
+             class="bz-legend-row"
+             style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;"></div>
       </div>
 
       <!-- Render button -->
@@ -855,7 +841,7 @@
         <span class="plot-card-heading-text plot-card-heading-text--bz">
           <span class="pct-dot"></span>
           <span class="bz-heading-stack">
-            <span id="bz-plot-title">Brillouin Zones — Square Lattice (4 zones, default)</span>
+            <span id="bz-plot-title">Brillouin zones — square lattice</span>
             <span id="bz-status" class="bz-status-line"></span>
           </span>
         </span>
@@ -1047,18 +1033,16 @@ let bzState = {
   a:       {{ bz_a }},
   b:       {{ bz_b }},
   angle:   {{ bz_angle }},
-  zones:   {{ bz_zones | int }}
+  zones:   10
 };
 
 function getBzLayersPayload() {
   const all = document.getElementById('bz-cb-all');
   if (all && all.checked) return 'all';
   const sel = [];
-  const nz = bzState.zones;
   document.querySelectorAll('.bz-z-cb').forEach(cb => {
-    if (cb.disabled) return;
     const z = parseInt(cb.dataset.z, 10);
-    if (cb.checked && z >= 1 && z <= nz) sel.push(z);
+    if (cb.checked && z >= 1 && z <= 10) sel.push(z);
   });
   return sel.length ? sel : 'all';
 }
@@ -1073,23 +1057,6 @@ function syncBzLayersHidden() {
 window.syncBzLayersHidden = syncBzLayersHidden;
 
 function refreshBzLayerDisabled() {
-  const nz = bzState.zones;
-  const allN = document.getElementById('bz-all-n-label');
-  if (allN) allN.textContent = String(nz);
-  document.querySelectorAll('.bz-z-cb').forEach(cb => {
-    const z = parseInt(cb.dataset.z, 10);
-    const dis = z > nz;
-    cb.disabled = dis;
-    const lab = cb.closest('.bz-z-label');
-    if (lab) lab.style.opacity = dis ? '0.35' : '1';
-    if (dis) cb.checked = false;
-  });
-  const allCb = document.getElementById('bz-cb-all');
-  if (allCb && allCb.checked) {
-    document.querySelectorAll('.bz-z-cb').forEach(cb => {
-      if (!cb.disabled) cb.checked = true;
-    });
-  }
   syncBzLayersHidden();
 }
 
@@ -1110,21 +1077,15 @@ function syncBZ(param, val) {
     document.getElementById('bz-angle-range').value = bzState.angle;
     document.getElementById('bz-angle-num').value   = bzState.angle.toFixed(0);
     updateRangeFill(document.getElementById('bz-angle-range'));
-  } else if (param === 'zones') {
-    bzState.zones = Math.min(Math.max(Math.round(val), 1), 10);
-    document.getElementById('bz-zones-range').value = bzState.zones;
-    document.getElementById('bz-zones-num').value   = bzState.zones;
-    updateRangeFill(document.getElementById('bz-zones-range'));
-    buildBZLegend();
-    refreshBzLayerDisabled();
   }
 }
 
 /** Build color-coded zone legend */
 function buildBZLegend() {
   const leg = document.getElementById('bz-legend');
+  if (!leg) return;
   leg.innerHTML = '';
-  for (let i = 0; i < bzState.zones; i++) {
+  for (let i = 0; i < 10; i++) {
     const c = BZ_COLORS[i % BZ_COLORS.length];
     const span = document.createElement('span');
     span.style.cssText = `
@@ -1149,7 +1110,7 @@ function syncBZHiddenToForm() {
   if (a) a.value = bzState.a;
   if (b) b.value = bzState.b;
   if (ang) ang.value = bzState.angle;
-  if (z) z.value = bzState.zones;
+  if (z) z.value = '10';
   syncBzLayersHidden();
 }
 
@@ -1193,13 +1154,6 @@ function initBZUIFromState() {
     ir.value = bzState.angle;
     updateRangeFill(ir);
   }
-  const zr = document.getElementById('bz-zones-range');
-  const zn = document.getElementById('bz-zones-num');
-  if (zr && zn) {
-    zn.value = bzState.zones;
-    zr.value = bzState.zones;
-    updateRangeFill(zr);
-  }
   buildBZLegend();
   refreshBzLayerDisabled();
 }
@@ -1213,9 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bzAll) {
     bzAll.addEventListener('change', () => {
       if (bzAll.checked) {
-        document.querySelectorAll('.bz-z-cb').forEach(cb => {
-          if (!cb.disabled) cb.checked = true;
-        });
+        document.querySelectorAll('.bz-z-cb').forEach(cb => { cb.checked = true; });
       }
       syncBzLayersHidden();
     });
@@ -1225,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (document.getElementById('bz-cb-all')) document.getElementById('bz-cb-all').checked = false;
       let any = false;
       document.querySelectorAll('.bz-z-cb').forEach(c2 => {
-        if (!c2.disabled && c2.checked) any = true;
+        if (c2.checked) any = true;
       });
       if (!any) {
         document.getElementById('bz-cb-all').checked = true;
@@ -1297,8 +1249,9 @@ function renderBZ() {
 
       const capLat = bzState.lattice.charAt(0).toUpperCase() + bzState.lattice.slice(1);
       title.textContent  = `Brillouin Zones — ${capLat} Lattice`;
-      const zWord        = bzState.zones === 1 ? 'zone' : 'zones';
-      status.textContent = `${bzState.zones} ${zWord} rendered ✓`;
+      const layers = getBzLayersPayload();
+      const nDraw = layers === 'all' ? 10 : layers.length;
+      status.textContent = `${nDraw} zone${nDraw === 1 ? '' : 's'} in view ✓`;
       status.style.color = 'var(--green)';
       if (typeof markPlotKeyOpen === 'function') markPlotKeyOpen('bz_plot');
 
